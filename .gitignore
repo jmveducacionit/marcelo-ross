@@ -15,6 +15,9 @@ build/
 # Prisma
 prisma/*.db
 
+# Postgres embebido de desarrollo (embedded-postgres)
+.dev-db/
+
 # Logs / temporales
 *.log
 .DS_Store

@@ -1,0 +1,17 @@
+{
+  "name": "@pos/pos-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@pos/contracts": "workspace:*",
+    "@pos/core-domain": "workspace:*",
+    "@prisma/client": "^6.2.1",
+    "fastify": "^5.2.0"
+  }
+}

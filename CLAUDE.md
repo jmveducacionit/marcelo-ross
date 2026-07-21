@@ -122,18 +122,28 @@ y con el central.
 
 ## 5. Comandos habituales
 
-> Aún no implementados (Fase 1). Se documentan acá a medida que existan.
+Prototipo funcionando (Etapa 1). Guía completa en [`docs/prototipo.md`](docs/prototipo.md).
 
 ```bash
 pnpm install              # instalar dependencias del monorepo
-pnpm dev                  # levantar server + web en modo dev (futuro)
-pnpm build                # build de todos los paquetes
+pnpm dev:db               # Postgres EMBEBIDO (localhost:54329) — dejar corriendo
+pnpm setup                # migrate deploy + seed (una vez, con la base arriba)
+pnpm dev:server           # Fastify en :3000  — dejar corriendo
+pnpm dev:web              # Vite en :5173      — abrir en el navegador
 pnpm test                 # Vitest (unit + integración)
-pnpm test:e2e             # Playwright (flujo de venta)
-pnpm db:migrate           # aplicar migraciones Prisma (futuro)
-pnpm db:seed              # cargar datos ficticios de prueba (futuro)
-docker compose up -d      # Postgres + servicios locales
+pnpm db:studio            # Prisma Studio (inspeccionar la base)
+pnpm db:migrate           # crear migración (prisma migrate dev)
 ```
+
+> **Base de datos en dev**: NO se usa Docker. Es un **Postgres embebido**
+> (`embedded-postgres`) levantado por `scripts/dev-db.mjs`, en el **puerto 54329**
+> (el 5432 de esta máquina ya está ocupado), persistido en `.dev-db/`. El
+> `DATABASE_URL` de `.env` apunta a 54329. `docker-compose.yml` queda como
+> referencia para el despliegue en la sucursal, no para dev.
+>
+> Si `pnpm` no está en el PATH, usar `corepack pnpm@9.15.0 <cmd>`.
+>
+> `pnpm test:e2e` (Playwright) todavía no está configurado.
 
 ---
 

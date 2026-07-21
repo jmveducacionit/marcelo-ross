@@ -12,8 +12,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
+    "dev:db": "node scripts/dev-db.mjs",
+    "dev:server": "pnpm --filter @pos/pos-server dev",
+    "dev:web": "pnpm --filter @pos/pos-web dev",
+    "setup": "prisma migrate deploy && prisma db seed",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
@@ -23,7 +28,8 @@
   },
   "dependencies": {
     "@pos/core-domain": "workspace:*",
-    "@prisma/client": "^6.2.1"
+    "@prisma/client": "^6.2.1",
+    "embedded-postgres": "18.4.0-beta.17"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
@@ -36,7 +42,12 @@
     "onlyBuiltDependencies": [
       "@prisma/client",
       "prisma",
-      "esbuild"
+      "esbuild",
+      "embedded-postgres",
+      "@embedded-postgres/windows-x64",
+      "@embedded-postgres/linux-x64",
+      "@embedded-postgres/darwin-x64",
+      "@embedded-postgres/darwin-arm64"
     ]
   }
 }

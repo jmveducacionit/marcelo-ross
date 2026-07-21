@@ -196,8 +196,9 @@ model Venta {
   total           BigInt // Money
   esCambio        Boolean  @default(false)
 
-  lineas LineaVenta[]
-  pagos  Pago[]
+  lineas  LineaVenta[]
+  pagos   Pago[]
+  cliente Cliente?     @relation(fields: [clienteId], references: [id])
 }
 
 model LineaVenta {
@@ -357,6 +358,7 @@ model Cliente {
   telefono         String?
   tallesHabituales TalleHabitual[]
   credito          CreditoCliente?
+  ventas           Venta[]
 }
 
 model TalleHabitual {
