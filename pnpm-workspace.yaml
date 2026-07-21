@@ -1,0 +1,4 @@
+# Workspaces del monorepo. Ver docs/arquitectura.md
+packages:
+  - "apps/*"
+  - "packages/*"

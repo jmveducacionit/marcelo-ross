@@ -1,0 +1,36 @@
+# Andamiaje de infraestructura — Fase 1 (documentado, no operativo aún).
+#
+# Este compose describe el nodo de UNA sucursal: PostgreSQL 16 + pos-server.
+# El VPS central usa un compose análogo pero sin cajas y con foco en
+# consolidación + backup. Ver docs/adr/0001-offline-first-y-sincronizacion.md
+#
+# Regla de infra (CLAUDE.md §3): Docker Compose alcanza. Sin Kubernetes,
+# sin microservicios, sin colas distribuidas.
+
+services:
+  db:
+    image: postgres:16
+    container_name: pos-db
+    environment:
+      POSTGRES_USER: pos
+      POSTGRES_PASSWORD: pos # override por .env en cada nodo
+      POSTGRES_DB: pos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pos-db-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # pos-server:
+  #   [pendiente] build: ./apps/pos-server
+  #   depends_on: [db]
+  #   environment:
+  #     SUCURSAL_ID: "..."          # identifica el nodo (Centro / Shopping)
+  #     DATABASE_URL: "..."
+  #     NODO_CENTRAL_URL: "..."     # para la cola de sincronización
+  #     ARCA_INTERMEDIARIO_URL: "..."
+  #   ports: ["3000:3000"]
+  #   restart: unless-stopped
+
+volumes:
+  pos-db-data:

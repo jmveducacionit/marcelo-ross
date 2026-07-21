@@ -1,0 +1,507 @@
+// ============================================================================
+// Esquema CONCEPTUAL del POS — anticipa los 8 módulos.
+// Fase 1: andamiaje. Las migraciones se aplican por ETAPAS (ver docs/roadmap.md);
+// este archivo describe el modelo completo comentado, no se migra entero de una.
+//
+// Convenciones (ver CLAUDE.md §4 y docs/modelo-datos.md):
+//  - IDs: UUIDv7 generado EN LA APP (no autoincremental). Tipo String @id.
+//    No usamos @default(uuid()) para dejar claro que el id lo genera la app
+//    (necesario para offline-first sin colisiones). Ver ADR-0008.
+//  - Dinero: BigInt = centavos de ARS. NUNCA Float. Ver ADR-0003.
+//  - Multi-sucursal: toda entidad con stock/caja/venta lleva sucursalId.
+//  - Precios versionados + snapshot en la línea de venta. Ver ADR-0003.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================================================
+// BASE / MULTI-SUCURSAL
+// ===========================================================================
+
+model Sucursal {
+  id                String  @id
+  nombre            String
+  direccion         String?
+  esDepositoCentral Boolean @default(false)
+
+  cajas         Caja[]
+  puntosVenta   PuntoVenta[]
+  stock         StockPorSucursal[]
+  // ...relaciones inversas se completan al implementar cada etapa.
+}
+
+model Caja {
+  id         String   @id
+  sucursalId String
+  nombre     String
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+}
+
+// ===========================================================================
+// MÓDULO 2 — STOCK  (Etapa 2)  — matriz talle×color con escalas configurables
+// ===========================================================================
+
+model Categoria {
+  id           String       @id
+  nombre       String
+  // Cada categoría define qué escala de talle usa (ADR-0002).
+  escalaTalleId String?
+  escalaTalle  EscalaTalle? @relation(fields: [escalaTalleId], references: [id])
+  productos    ProductoPadre[]
+}
+
+model EscalaTalle {
+  id         String      @id
+  nombre     String      // "Camisería 38-44", "Denim 28-36", "Calzado 39-45"...
+  talles     Talle[]
+  categorias Categoria[]
+}
+
+model Talle {
+  id            String      @id
+  escalaTalleId String
+  etiqueta      String      // "40", "M", "42", "U" (único)
+  orden         Int         // ordena escalas numéricas y no numéricas
+  escalaTalle   EscalaTalle @relation(fields: [escalaTalleId], references: [id])
+  variantes     Variante[]
+
+  @@unique([escalaTalleId, etiqueta])
+}
+
+model Color {
+  id        String     @id
+  nombre    String
+  codigoHex String?
+  variantes Variante[]
+}
+
+model ProductoPadre {
+  id          String     @id
+  nombre      String
+  marcaId     String
+  categoriaId String
+  temporadaId String?
+  descripcion String?
+  marca       Marca      @relation(fields: [marcaId], references: [id])
+  categoria   Categoria  @relation(fields: [categoriaId], references: [id])
+  temporada   Temporada? @relation(fields: [temporadaId], references: [id])
+  variantes   Variante[]
+  // El stock NUNCA se lleva acá — siempre a nivel Variante.
+}
+
+model Variante {
+  id              String  @id
+  productoPadreId String
+  talleId         String
+  colorId         String
+  codigoBarras    String  @unique // generado por el comercio al ingresar stock
+  codigoProveedor String?
+  esConsignacion  Boolean @default(false) // no propio hasta venderse (ADR-0006)
+
+  productoPadre ProductoPadre      @relation(fields: [productoPadreId], references: [id])
+  talle         Talle              @relation(fields: [talleId], references: [id])
+  color         Color              @relation(fields: [colorId], references: [id])
+  stock         StockPorSucursal[]
+  precios       PrecioVariante[]
+  movimientos   MovimientoStock[]
+
+  @@unique([productoPadreId, talleId, colorId])
+}
+
+model StockPorSucursal {
+  id         String   @id
+  varianteId String
+  sucursalId String
+  cantidad   Int      // proyección del ledger MovimientoStock
+  variante   Variante @relation(fields: [varianteId], references: [id])
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+
+  @@unique([varianteId, sucursalId])
+}
+
+model MovimientoStock {
+  id           String   @id
+  varianteId   String
+  sucursalId   String
+  tipo         String   // INGRESO | VENTA | DEVOLUCION | AJUSTE | TRANSFERENCIA_* | INVENTARIO
+  cantidad     Int      // +/-
+  motivo       String?
+  referenciaId String?  // remito | venta | transferencia | inventario
+  usuarioId    String
+  ocurridoEn   DateTime @default(now())
+  variante     Variante @relation(fields: [varianteId], references: [id])
+}
+
+// Precio de venta VERSIONADO (ADR-0003). Cambiar precio = insertar fila nueva.
+model PrecioVariante {
+  id           String    @id
+  varianteId   String
+  precio       BigInt    // Money (centavos ARS)
+  vigenteDesde DateTime
+  vigenteHasta DateTime?
+  motivo       String?
+  variante     Variante  @relation(fields: [varianteId], references: [id])
+}
+
+// Ingresos, transferencias e inventario (modelos base; se detallan en Etapa 2).
+model Remito {
+  id         String   @id
+  proveedorId String
+  sucursalId String
+  fecha      DateTime
+  estado     String
+  // líneas: (varianteId, cantidad, costoUnitario BigInt) -> IngresoStockLinea
+}
+
+model Transferencia {
+  id               String    @id
+  sucursalOrigenId String
+  sucursalDestinoId String
+  estado           String    // ENVIADA | RECIBIDA | CON_DIFERENCIA
+  fechaEnvio       DateTime
+  fechaRecepcion   DateTime?
+  // líneas: (varianteId, cantidad)  — envío y recepción separados (offline)
+}
+
+model InventarioFisico {
+  id         String   @id
+  sucursalId String
+  fecha      DateTime
+  estado     String
+  // líneas: (varianteId, cantidadSistema, cantidadContada, diferencia)
+}
+
+// ===========================================================================
+// MÓDULO 1 — VENTAS  (Etapa 3)
+// ===========================================================================
+
+model Venta {
+  id              String   @id
+  sucursalId      String
+  cajaId          String
+  vendedorId      String
+  clienteId       String?
+  fechaHora       DateTime @default(now())
+  estadoVenta     String   // CONFIRMADA | ANULADA
+  estadoEntrega   String   // ENTREGADA | PENDIENTE_AJUSTE  (vendido != entregado)
+  subtotal        BigInt   // Money
+  totalDescuentos BigInt   // Money
+  total           BigInt   // Money
+  esCambio        Boolean  @default(false)
+
+  lineas LineaVenta[]
+  pagos  Pago[]
+}
+
+model LineaVenta {
+  id             String   @id
+  ventaId        String
+  varianteId     String
+  cantidad       Int
+  precioUnitario BigInt   // Money — SNAPSHOT al momento de la venta (no FK al vigente)
+  subtotalLinea  BigInt   // Money
+  requiereAjuste Boolean  @default(false)
+  detalleAjuste  String?
+  venta          Venta    @relation(fields: [ventaId], references: [id])
+
+  descuentos DescuentoAplicado[]
+}
+
+// Descuentos auditables a nivel línea (ADR-0004).
+model Descuento {
+  id                   String    @id
+  tipo                 String    // PORCENTAJE | MONTO_FIJO | COMBO | LIQUIDACION | EMPLEADO | PROMO_BANCARIA
+  reglas               Json
+  vigenciaDesde        DateTime?
+  vigenciaHasta        DateTime?
+  requiereAutorizacion Boolean   @default(false)
+  aplicaciones         DescuentoAplicado[]
+}
+
+model DescuentoAplicado {
+  id             String     @id
+  lineaVentaId   String?
+  ventaId        String?    // descuentos de nivel ticket (se prorratean)
+  descuentoId    String
+  tipo           String
+  montoDescontado BigInt    // Money — snapshot del monto, no una fórmula
+  autorizadoPor  String?
+  lineaVenta     LineaVenta? @relation(fields: [lineaVentaId], references: [id])
+  descuento      Descuento   @relation(fields: [descuentoId], references: [id])
+}
+
+model Pago {
+  id                String  @id
+  ventaId           String
+  medio             String  // EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | QR | GIFTCARD | CREDITO_CLIENTE
+  monto             BigInt  // Money
+  cuotas            Int?
+  interes           BigInt? // Money
+  procesador        String? // MODO | MercadoPago | ...
+  referenciaExterna String?
+  venta             Venta   @relation(fields: [ventaId], references: [id])
+}
+
+model Devolucion {
+  id            String   @id
+  ventaOrigenId String?
+  sucursalId    String
+  cajaId        String
+  usuarioId     String
+  fecha         DateTime @default(now())
+  conTicket     Boolean
+  resolucion    String   // NOTA_CREDITO | CREDITO_A_FAVOR | CAMBIO
+  motivo        String?
+  // líneas: (varianteId, cantidad)
+}
+
+// ===========================================================================
+// MÓDULO 3 — CONTROL DE CAJA  (Etapa 4)
+// ===========================================================================
+
+model Turno {
+  id             String    @id
+  sucursalId     String
+  fechaApertura  DateTime
+  fechaCierre    DateTime?
+}
+
+model SesionCaja {
+  id            String    @id
+  cajaId        String
+  turnoId       String
+  usuarioId     String
+  fondoInicial  BigInt    // Money
+  fechaApertura DateTime  @default(now())
+  fechaCierre   DateTime?
+  estado        String    // ABIERTA | CERRADA
+  movimientos   MovimientoCaja[]
+}
+
+model MovimientoCaja {
+  id           String     @id
+  sesionCajaId String
+  tipo         String     // VENTA | RETIRO | GASTO | INGRESO_MANUAL
+  medio        String
+  monto        BigInt     // Money
+  referenciaId String?
+  usuarioId    String
+  fechaHora    DateTime   @default(now())
+  sesion       SesionCaja @relation(fields: [sesionCajaId], references: [id])
+}
+
+model Arqueo {
+  id            String @id
+  sesionCajaId  String
+  totalContado  BigInt // Money
+  diferencia    BigInt // Money
+  observaciones String?
+  // totalesEsperadosPorMedio -> Json
+}
+
+model ConciliacionElectronica {
+  id                  String @id
+  sucursalId          String
+  periodo             String
+  medio               String
+  montoSistema        BigInt // Money
+  montoLiquidacionBanco BigInt // Money (carga manual en V1)
+  diferencia          BigInt // Money
+}
+
+// ===========================================================================
+// MÓDULO 4 — EMPLEADOS  (Etapa 8; roles mínimos en Etapa 1)
+// ===========================================================================
+
+model Usuario {
+  id                 String  @id
+  nombre             String
+  email              String  @unique
+  hashPassword       String
+  rol                String  // VENDEDOR | ENCARGADO | ADMIN | CONTADOR_RO
+  sucursalIdPrincipal String
+  activo             Boolean @default(true)
+}
+
+model Comision {
+  id         String @id
+  vendedorId String
+  ventaId    String?
+  periodo    String
+  base       BigInt // Money — venta NETA de devoluciones
+  porcentaje Float
+  monto      BigInt // Money
+  estado     String // PENDIENTE | LIQUIDADA
+}
+
+// ===========================================================================
+// MÓDULO 5 — CLIENTES  (Etapa 6)
+// ===========================================================================
+
+model Cliente {
+  id             String  @id
+  nombre         String
+  documento      String?
+  condicionIva   String
+  cuit           String?
+  razonSocial    String?
+  domicilioFiscal String?
+  email          String?
+  telefono       String?
+  tallesHabituales TalleHabitual[]
+  credito        CreditoCliente?
+}
+
+model TalleHabitual {
+  id          String  @id
+  clienteId   String
+  categoriaId String
+  talleId     String
+  cliente     Cliente @relation(fields: [clienteId], references: [id])
+}
+
+model CreditoCliente {
+  id        String  @id
+  clienteId String  @unique
+  saldo     BigInt  // Money
+  cliente   Cliente @relation(fields: [clienteId], references: [id])
+  // movimientos: (+devolucion / -uso en venta)
+}
+
+// ===========================================================================
+// MÓDULO 7 — FACTURACIÓN  (Etapa 5)
+// ===========================================================================
+
+model PuntoVenta {
+  id         String   @id
+  sucursalId String
+  numeroArca Int
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+  comprobantes Comprobante[]
+
+  @@unique([sucursalId, numeroArca])
+}
+
+model Comprobante {
+  id            String    @id
+  tipo          String    // FACTURA_A | FACTURA_B | NOTA_CREDITO | NOTA_DEBITO
+  puntoVentaId  String
+  numero        Int
+  ventaId       String?
+  clienteId     String?
+  fechaEmision  DateTime  @default(now())
+  neto          BigInt    // Money
+  iva           BigInt    // Money
+  total         BigInt    // Money
+  estadoCae     String    // PENDIENTE | OBTENIDO | RECHAZADO
+  cae           String?
+  vencimientoCae DateTime?
+  intentos      Int       @default(0)
+  puntoVenta    PuntoVenta @relation(fields: [puntoVentaId], references: [id])
+
+  @@unique([puntoVentaId, tipo, numero])
+}
+
+// Cola de reintentos del CAE (offline-first, ADR-0005).
+model ColaCae {
+  id             String    @id
+  comprobanteId  String    @unique
+  estado         String
+  ultimoIntento  DateTime?
+  proximoIntento DateTime?
+  error          String?
+}
+
+// ===========================================================================
+// MÓDULO 8 — PROVEEDORES  (Etapa 7)
+// ===========================================================================
+
+model Proveedor {
+  id             String  @id
+  razonSocial    String
+  cuit           String
+  condicionIva   String
+  esConsignatario Boolean @default(false)
+  marcas         Marca[]
+  cuentaCorriente CuentaCorrienteProveedor?
+}
+
+model Marca {
+  id             String   @id
+  nombre         String
+  proveedorId    String?
+  markupObjetivo Float?   // 0.55 a 1.30 (55%–130%)
+  proveedor      Proveedor? @relation(fields: [proveedorId], references: [id])
+  productos      ProductoPadre[]
+}
+
+model Temporada {
+  id       String @id
+  nombre   String // "Primavera-Verano" | "Otoño-Invierno"
+  anio     Int
+  productos ProductoPadre[]
+}
+
+model OrdenCompra {
+  id          String   @id
+  proveedorId String
+  temporadaId String?
+  fecha       DateTime
+  estado      String
+  // líneas: (varianteId | descripcion, cantidad, costoUnitario BigInt)
+}
+
+model CuentaCorrienteProveedor {
+  id          String    @id
+  proveedorId String    @unique
+  saldo       BigInt    // Money
+  proveedor   Proveedor @relation(fields: [proveedorId], references: [id])
+}
+
+model LiquidacionConsignacion {
+  id          String @id
+  proveedorId String
+  periodo     String
+  // líneas: (varianteId, cantidadVendida, montoALiquidar BigInt)
+}
+
+// ===========================================================================
+// TRANSVERSAL — AUDITORÍA + OUTBOX (ADR-0008 / ADR-0001)
+// ===========================================================================
+
+// Append-only: toda operación con impacto en dinero o stock.
+model RegistroAuditoria {
+  id         String   @id
+  entidad    String
+  entidadId  String
+  accion     String
+  antes      Json?
+  despues    Json?
+  usuarioId  String
+  cajaId     String?
+  sucursalId String
+  ocurridoEn DateTime @default(now())
+
+  @@index([entidad, entidadId])
+  @@index([sucursalId, ocurridoEn])
+}
+
+// Outbox transaccional: alimenta el bus de eventos y la sincronización.
+// id = eventId (UUIDv7) -> sirve para dedupe idempotente.
+model Outbox {
+  id         String   @id
+  tipoEvento String
+  payload    Json
+  sucursalId String
+  estado     String   // PENDIENTE | PUBLICADO | SINCRONIZADO
+  ocurridoEn DateTime @default(now())
+
+  @@index([estado, ocurridoEn])
+}

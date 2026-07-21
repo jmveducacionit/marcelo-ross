@@ -1,0 +1,20 @@
+{
+  "name": "marcelo-ross-pos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sistema POS multi-sucursal offline-first para Marcelo Ross Hombre",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "//": "Scripts placeholder — se completan a medida que se implementan los módulos (Fase 1: andamiaje).",
+    "build": "echo \"[pendiente] build del monorepo\"",
+    "dev": "echo \"[pendiente] levantar pos-server + pos-web\"",
+    "test": "echo \"[pendiente] vitest\"",
+    "test:e2e": "echo \"[pendiente] playwright\"",
+    "lint": "echo \"[pendiente] eslint + regla de límites de módulo\"",
+    "db:migrate": "echo \"[pendiente] prisma migrate\"",
+    "db:seed": "echo \"[pendiente] seed de datos ficticios\""
+  }
+}

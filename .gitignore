@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Prisma
+prisma/*.db
+
+# Logs / temporales
+*.log
+.DS_Store
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
