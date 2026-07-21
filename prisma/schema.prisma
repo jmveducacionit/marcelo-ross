@@ -31,9 +31,9 @@ model Sucursal {
   direccion         String?
   esDepositoCentral Boolean @default(false)
 
-  cajas         Caja[]
-  puntosVenta   PuntoVenta[]
-  stock         StockPorSucursal[]
+  cajas       Caja[]
+  puntosVenta PuntoVenta[]
+  stock       StockPorSucursal[]
   // ...relaciones inversas se completan al implementar cada etapa.
 }
 
@@ -49,17 +49,17 @@ model Caja {
 // ===========================================================================
 
 model Categoria {
-  id           String       @id
-  nombre       String
+  id            String          @id
+  nombre        String
   // Cada categoría define qué escala de talle usa (ADR-0002).
   escalaTalleId String?
-  escalaTalle  EscalaTalle? @relation(fields: [escalaTalleId], references: [id])
-  productos    ProductoPadre[]
+  escalaTalle   EscalaTalle?    @relation(fields: [escalaTalleId], references: [id])
+  productos     ProductoPadre[]
 }
 
 model EscalaTalle {
   id         String      @id
-  nombre     String      // "Camisería 38-44", "Denim 28-36", "Calzado 39-45"...
+  nombre     String // "Camisería 38-44", "Denim 28-36", "Calzado 39-45"...
   talles     Talle[]
   categorias Categoria[]
 }
@@ -67,8 +67,8 @@ model EscalaTalle {
 model Talle {
   id            String      @id
   escalaTalleId String
-  etiqueta      String      // "40", "M", "42", "U" (único)
-  orden         Int         // ordena escalas numéricas y no numéricas
+  etiqueta      String // "40", "M", "42", "U" (único)
+  orden         Int // ordena escalas numéricas y no numéricas
   escalaTalle   EscalaTalle @relation(fields: [escalaTalleId], references: [id])
   variantes     Variante[]
 
@@ -119,7 +119,7 @@ model StockPorSucursal {
   id         String   @id
   varianteId String
   sucursalId String
-  cantidad   Int      // proyección del ledger MovimientoStock
+  cantidad   Int // proyección del ledger MovimientoStock
   variante   Variante @relation(fields: [varianteId], references: [id])
   sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
 
@@ -130,10 +130,10 @@ model MovimientoStock {
   id           String   @id
   varianteId   String
   sucursalId   String
-  tipo         String   // INGRESO | VENTA | DEVOLUCION | AJUSTE | TRANSFERENCIA_* | INVENTARIO
-  cantidad     Int      // +/-
+  tipo         String // INGRESO | VENTA | DEVOLUCION | AJUSTE | TRANSFERENCIA_* | INVENTARIO
+  cantidad     Int // +/-
   motivo       String?
-  referenciaId String?  // remito | venta | transferencia | inventario
+  referenciaId String? // remito | venta | transferencia | inventario
   usuarioId    String
   ocurridoEn   DateTime @default(now())
   variante     Variante @relation(fields: [varianteId], references: [id])
@@ -143,7 +143,7 @@ model MovimientoStock {
 model PrecioVariante {
   id           String    @id
   varianteId   String
-  precio       BigInt    // Money (centavos ARS)
+  precio       BigInt // Money (centavos ARS)
   vigenteDesde DateTime
   vigenteHasta DateTime?
   motivo       String?
@@ -152,21 +152,21 @@ model PrecioVariante {
 
 // Ingresos, transferencias e inventario (modelos base; se detallan en Etapa 2).
 model Remito {
-  id         String   @id
+  id          String   @id
   proveedorId String
-  sucursalId String
-  fecha      DateTime
-  estado     String
+  sucursalId  String
+  fecha       DateTime
+  estado      String
   // líneas: (varianteId, cantidad, costoUnitario BigInt) -> IngresoStockLinea
 }
 
 model Transferencia {
-  id               String    @id
-  sucursalOrigenId String
+  id                String    @id
+  sucursalOrigenId  String
   sucursalDestinoId String
-  estado           String    // ENVIADA | RECIBIDA | CON_DIFERENCIA
-  fechaEnvio       DateTime
-  fechaRecepcion   DateTime?
+  estado            String // ENVIADA | RECIBIDA | CON_DIFERENCIA
+  fechaEnvio        DateTime
+  fechaRecepcion    DateTime?
   // líneas: (varianteId, cantidad)  — envío y recepción separados (offline)
 }
 
@@ -189,11 +189,11 @@ model Venta {
   vendedorId      String
   clienteId       String?
   fechaHora       DateTime @default(now())
-  estadoVenta     String   // CONFIRMADA | ANULADA
-  estadoEntrega   String   // ENTREGADA | PENDIENTE_AJUSTE  (vendido != entregado)
-  subtotal        BigInt   // Money
-  totalDescuentos BigInt   // Money
-  total           BigInt   // Money
+  estadoVenta     String // CONFIRMADA | ANULADA
+  estadoEntrega   String // ENTREGADA | PENDIENTE_AJUSTE  (vendido != entregado)
+  subtotal        BigInt // Money
+  totalDescuentos BigInt // Money
+  total           BigInt // Money
   esCambio        Boolean  @default(false)
 
   lineas LineaVenta[]
@@ -201,47 +201,47 @@ model Venta {
 }
 
 model LineaVenta {
-  id             String   @id
+  id             String  @id
   ventaId        String
   varianteId     String
   cantidad       Int
-  precioUnitario BigInt   // Money — SNAPSHOT al momento de la venta (no FK al vigente)
-  subtotalLinea  BigInt   // Money
-  requiereAjuste Boolean  @default(false)
+  precioUnitario BigInt // Money — SNAPSHOT al momento de la venta (no FK al vigente)
+  subtotalLinea  BigInt // Money
+  requiereAjuste Boolean @default(false)
   detalleAjuste  String?
-  venta          Venta    @relation(fields: [ventaId], references: [id])
+  venta          Venta   @relation(fields: [ventaId], references: [id])
 
   descuentos DescuentoAplicado[]
 }
 
 // Descuentos auditables a nivel línea (ADR-0004).
 model Descuento {
-  id                   String    @id
-  tipo                 String    // PORCENTAJE | MONTO_FIJO | COMBO | LIQUIDACION | EMPLEADO | PROMO_BANCARIA
+  id                   String              @id
+  tipo                 String // PORCENTAJE | MONTO_FIJO | COMBO | LIQUIDACION | EMPLEADO | PROMO_BANCARIA
   reglas               Json
   vigenciaDesde        DateTime?
   vigenciaHasta        DateTime?
-  requiereAutorizacion Boolean   @default(false)
+  requiereAutorizacion Boolean             @default(false)
   aplicaciones         DescuentoAplicado[]
 }
 
 model DescuentoAplicado {
-  id             String     @id
-  lineaVentaId   String?
-  ventaId        String?    // descuentos de nivel ticket (se prorratean)
-  descuentoId    String
-  tipo           String
-  montoDescontado BigInt    // Money — snapshot del monto, no una fórmula
-  autorizadoPor  String?
-  lineaVenta     LineaVenta? @relation(fields: [lineaVentaId], references: [id])
-  descuento      Descuento   @relation(fields: [descuentoId], references: [id])
+  id              String      @id
+  lineaVentaId    String?
+  ventaId         String? // descuentos de nivel ticket (se prorratean)
+  descuentoId     String
+  tipo            String
+  montoDescontado BigInt // Money — snapshot del monto, no una fórmula
+  autorizadoPor   String?
+  lineaVenta      LineaVenta? @relation(fields: [lineaVentaId], references: [id])
+  descuento       Descuento   @relation(fields: [descuentoId], references: [id])
 }
 
 model Pago {
   id                String  @id
   ventaId           String
-  medio             String  // EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | QR | GIFTCARD | CREDITO_CLIENTE
-  monto             BigInt  // Money
+  medio             String // EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | QR | GIFTCARD | CREDITO_CLIENTE
+  monto             BigInt // Money
   cuotas            Int?
   interes           BigInt? // Money
   procesador        String? // MODO | MercadoPago | ...
@@ -257,7 +257,7 @@ model Devolucion {
   usuarioId     String
   fecha         DateTime @default(now())
   conTicket     Boolean
-  resolucion    String   // NOTA_CREDITO | CREDITO_A_FAVOR | CAMBIO
+  resolucion    String // NOTA_CREDITO | CREDITO_A_FAVOR | CAMBIO
   motivo        String?
   // líneas: (varianteId, cantidad)
 }
@@ -267,30 +267,30 @@ model Devolucion {
 // ===========================================================================
 
 model Turno {
-  id             String    @id
-  sucursalId     String
-  fechaApertura  DateTime
-  fechaCierre    DateTime?
+  id            String    @id
+  sucursalId    String
+  fechaApertura DateTime
+  fechaCierre   DateTime?
 }
 
 model SesionCaja {
-  id            String    @id
+  id            String           @id
   cajaId        String
   turnoId       String
   usuarioId     String
-  fondoInicial  BigInt    // Money
-  fechaApertura DateTime  @default(now())
+  fondoInicial  BigInt // Money
+  fechaApertura DateTime         @default(now())
   fechaCierre   DateTime?
-  estado        String    // ABIERTA | CERRADA
+  estado        String // ABIERTA | CERRADA
   movimientos   MovimientoCaja[]
 }
 
 model MovimientoCaja {
   id           String     @id
   sesionCajaId String
-  tipo         String     // VENTA | RETIRO | GASTO | INGRESO_MANUAL
+  tipo         String // VENTA | RETIRO | GASTO | INGRESO_MANUAL
   medio        String
-  monto        BigInt     // Money
+  monto        BigInt // Money
   referenciaId String?
   usuarioId    String
   fechaHora    DateTime   @default(now())
@@ -298,7 +298,7 @@ model MovimientoCaja {
 }
 
 model Arqueo {
-  id            String @id
+  id            String  @id
   sesionCajaId  String
   totalContado  BigInt // Money
   diferencia    BigInt // Money
@@ -307,13 +307,13 @@ model Arqueo {
 }
 
 model ConciliacionElectronica {
-  id                  String @id
-  sucursalId          String
-  periodo             String
-  medio               String
-  montoSistema        BigInt // Money
+  id                    String @id
+  sucursalId            String
+  periodo               String
+  medio                 String
+  montoSistema          BigInt // Money
   montoLiquidacionBanco BigInt // Money (carga manual en V1)
-  diferencia          BigInt // Money
+  diferencia            BigInt // Money
 }
 
 // ===========================================================================
@@ -321,17 +321,17 @@ model ConciliacionElectronica {
 // ===========================================================================
 
 model Usuario {
-  id                 String  @id
-  nombre             String
-  email              String  @unique
-  hashPassword       String
-  rol                String  // VENDEDOR | ENCARGADO | ADMIN | CONTADOR_RO
+  id                  String  @id
+  nombre              String
+  email               String  @unique
+  hashPassword        String
+  rol                 String // VENDEDOR | ENCARGADO | ADMIN | CONTADOR_RO
   sucursalIdPrincipal String
-  activo             Boolean @default(true)
+  activo              Boolean @default(true)
 }
 
 model Comision {
-  id         String @id
+  id         String  @id
   vendedorId String
   ventaId    String?
   periodo    String
@@ -346,17 +346,17 @@ model Comision {
 // ===========================================================================
 
 model Cliente {
-  id             String  @id
-  nombre         String
-  documento      String?
-  condicionIva   String
-  cuit           String?
-  razonSocial    String?
-  domicilioFiscal String?
-  email          String?
-  telefono       String?
+  id               String          @id
+  nombre           String
+  documento        String?
+  condicionIva     String
+  cuit             String?
+  razonSocial      String?
+  domicilioFiscal  String?
+  email            String?
+  telefono         String?
   tallesHabituales TalleHabitual[]
-  credito        CreditoCliente?
+  credito          CreditoCliente?
 }
 
 model TalleHabitual {
@@ -370,7 +370,7 @@ model TalleHabitual {
 model CreditoCliente {
   id        String  @id
   clienteId String  @unique
-  saldo     BigInt  // Money
+  saldo     BigInt // Money
   cliente   Cliente @relation(fields: [clienteId], references: [id])
   // movimientos: (+devolucion / -uso en venta)
 }
@@ -380,43 +380,45 @@ model CreditoCliente {
 // ===========================================================================
 
 model PuntoVenta {
-  id         String   @id
-  sucursalId String
-  numeroArca Int
-  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+  id           String        @id
+  sucursalId   String
+  numeroArca   Int
+  sucursal     Sucursal      @relation(fields: [sucursalId], references: [id])
   comprobantes Comprobante[]
 
   @@unique([sucursalId, numeroArca])
 }
 
 model Comprobante {
-  id            String    @id
-  tipo          String    // FACTURA_A | FACTURA_B | NOTA_CREDITO | NOTA_DEBITO
-  puntoVentaId  String
-  numero        Int
-  ventaId       String?
-  clienteId     String?
-  fechaEmision  DateTime  @default(now())
-  neto          BigInt    // Money
-  iva           BigInt    // Money
-  total         BigInt    // Money
-  estadoCae     String    // PENDIENTE | OBTENIDO | RECHAZADO
-  cae           String?
+  id             String     @id
+  tipo           String // FACTURA_A | FACTURA_B | NOTA_CREDITO | NOTA_DEBITO
+  puntoVentaId   String
+  numero         Int
+  ventaId        String?
+  clienteId      String?
+  fechaEmision   DateTime   @default(now())
+  neto           BigInt // Money
+  iva            BigInt // Money
+  total          BigInt // Money
+  estadoCae      String // PENDIENTE | OBTENIDO | RECHAZADO
+  cae            String?
   vencimientoCae DateTime?
-  intentos      Int       @default(0)
-  puntoVenta    PuntoVenta @relation(fields: [puntoVentaId], references: [id])
+  intentos       Int        @default(0)
+  puntoVenta     PuntoVenta @relation(fields: [puntoVentaId], references: [id])
+  cola           ColaCae?
 
   @@unique([puntoVentaId, tipo, numero])
 }
 
 // Cola de reintentos del CAE (offline-first, ADR-0005).
 model ColaCae {
-  id             String    @id
-  comprobanteId  String    @unique
+  id             String      @id
+  comprobanteId  String      @unique
   estado         String
   ultimoIntento  DateTime?
   proximoIntento DateTime?
   error          String?
+  comprobante    Comprobante @relation(fields: [comprobanteId], references: [id])
 }
 
 // ===========================================================================
@@ -424,28 +426,28 @@ model ColaCae {
 // ===========================================================================
 
 model Proveedor {
-  id             String  @id
-  razonSocial    String
-  cuit           String
-  condicionIva   String
-  esConsignatario Boolean @default(false)
-  marcas         Marca[]
+  id              String                    @id
+  razonSocial     String
+  cuit            String
+  condicionIva    String
+  esConsignatario Boolean                   @default(false)
+  marcas          Marca[]
   cuentaCorriente CuentaCorrienteProveedor?
 }
 
 model Marca {
-  id             String   @id
+  id             String          @id
   nombre         String
   proveedorId    String?
-  markupObjetivo Float?   // 0.55 a 1.30 (55%–130%)
-  proveedor      Proveedor? @relation(fields: [proveedorId], references: [id])
+  markupObjetivo Float? // 0.55 a 1.30 (55%–130%)
+  proveedor      Proveedor?      @relation(fields: [proveedorId], references: [id])
   productos      ProductoPadre[]
 }
 
 model Temporada {
-  id       String @id
-  nombre   String // "Primavera-Verano" | "Otoño-Invierno"
-  anio     Int
+  id        String          @id
+  nombre    String // "Primavera-Verano" | "Otoño-Invierno"
+  anio      Int
   productos ProductoPadre[]
 }
 
@@ -461,7 +463,7 @@ model OrdenCompra {
 model CuentaCorrienteProveedor {
   id          String    @id
   proveedorId String    @unique
-  saldo       BigInt    // Money
+  saldo       BigInt // Money
   proveedor   Proveedor @relation(fields: [proveedorId], references: [id])
 }
 
@@ -500,7 +502,7 @@ model Outbox {
   tipoEvento String
   payload    Json
   sucursalId String
-  estado     String   // PENDIENTE | PUBLICADO | SINCRONIZADO
+  estado     String // PENDIENTE | PUBLICADO | SINCRONIZADO
   ocurridoEn DateTime @default(now())
 
   @@index([estado, ocurridoEn])

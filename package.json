@@ -2,19 +2,41 @@
   "name": "marcelo-ross-pos",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Sistema POS multi-sucursal offline-first para Marcelo Ross Hombre",
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "//": "Scripts placeholder — se completan a medida que se implementan los módulos (Fase 1: andamiaje).",
-    "build": "echo \"[pendiente] build del monorepo\"",
-    "dev": "echo \"[pendiente] levantar pos-server + pos-web\"",
-    "test": "echo \"[pendiente] vitest\"",
-    "test:e2e": "echo \"[pendiente] playwright\"",
-    "lint": "echo \"[pendiente] eslint + regla de límites de módulo\"",
-    "db:migrate": "echo \"[pendiente] prisma migrate\"",
-    "db:seed": "echo \"[pendiente] seed de datos ficticios\""
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@pos/core-domain": "workspace:*",
+    "@prisma/client": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "prisma": "^6.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "prisma",
+      "esbuild"
+    ]
   }
 }
