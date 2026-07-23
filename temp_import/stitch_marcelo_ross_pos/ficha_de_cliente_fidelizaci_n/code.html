@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface-container-low dark:bg-primary-container" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Perfil de Cliente - Marcelo Ross</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#a88c69",
+                        "on-surface": "#141d23",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#dbe4ed",
+                        "tertiary": "#211200",
+                        "primary-fixed-dim": "#b7c8de",
+                        "surface-tint": "#4f6073",
+                        "on-surface-variant": "#44474c",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#1a2b3c",
+                        "surface-bright": "#f6faff",
+                        "secondary-container": "#e4e2e1",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#b7c8de",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#e4e2e1",
+                        "on-secondary-container": "#656464",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#e6eff8",
+                        "surface-dim": "#d2dbe4",
+                        "surface-variant": "#dbe4ed",
+                        "inverse-on-surface": "#e9f2fb",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "background": "#f6faff",
+                        "outline": "#74777d",
+                        "surface-container-low": "#ecf5fe",
+                        "surface": "#f6faff",
+                        "on-tertiary-fixed-variant": "#584326",
+                        "on-secondary-fixed-variant": "#474747",
+                        "inverse-surface": "#293138",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#0b1d2d",
+                        "tertiary-fixed-dim": "#e1c29b",
+                        "on-tertiary-fixed": "#281802",
+                        "secondary": "#5f5e5e",
+                        "primary": "#041627",
+                        "tertiary-container": "#38260b",
+                        "primary-fixed": "#d2e4fb",
+                        "tertiary-fixed": "#feddb5",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "on-primary-container": "#8192a7",
+                        "surface-container-high": "#e0e9f2",
+                        "outline-variant": "#c4c6cd",
+                        "on-primary-fixed-variant": "#38485a",
+                        "on-background": "#141d23"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "unit": "8px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "headline-sm": ["Playfair Display"],
+                        "label-md": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-md": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "headline-sm": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full flex text-on-surface">
+<!-- SideNavBar (Hidden on Mobile) -->
+<nav class="hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col border-r border-outline-variant/10 z-40 bg-surface-container-low dark:bg-primary-container">
+<!-- Brand Header -->
+<div class="p-6">
+<h1 class="font-display-lg text-headline-sm text-primary dark:text-primary-fixed mb-1">Marcelo Ross</h1>
+<p class="font-body-md text-caption text-secondary dark:text-secondary-fixed-dim">Heritage Ledger POS</p>
+</div>
+<!-- CTA -->
+<div class="px-6 mb-8">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 px-4 rounded flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+                Nueva Venta
+            </button>
+</div>
+<!-- Nav Links -->
+<div class="flex-1 overflow-y-auto px-4 space-y-2">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+                Ventas
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Stock
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+                Control de Caja
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">badge</span>
+                Empleados
+            </a>
+<!-- Active Tab: Clientes -->
+<a class="flex items-center gap-3 px-3 py-2 bg-primary dark:bg-primary-fixed text-on-primary dark:text-on-primary-fixed rounded-lg mx-2 font-label-md text-label-md scale-95 transition-transform shadow-sm" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+                Clientes
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+                Facturación
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+                Proveedores
+            </a>
+</div>
+<!-- Footer Actions -->
+<div class="p-4 border-t border-outline-variant/10 space-y-2">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Configuración
+            </a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all mx-2 rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Cerrar Sesión
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen bg-surface-container-lowest">
+<!-- TopNavBar (Mobile Only Header) -->
+<header class="md:hidden flex justify-between items-center w-full px-margin-mobile h-16 border-b border-outline-variant/10 bg-surface-container-lowest z-50 sticky top-0">
+<div class="flex items-center gap-3">
+<button class="text-primary p-2 -ml-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-display-lg-mobile text-display-lg-mobile text-primary">Marcelo Ross</span>
+</div>
+<div class="flex gap-2">
+<button class="text-primary p-2 hover:bg-surface-container-high transition-colors rounded-full">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</header>
+<!-- Page Header / Breadcrumb -->
+<div class="px-margin-mobile md:px-margin-desktop py-6 flex items-center gap-2 text-secondary font-label-md text-label-md">
+<a class="hover:text-primary transition-colors" href="#">Clientes</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary">Alejandro M.</span>
+</div>
+<!-- Scrollable Canvas -->
+<div class="flex-1 overflow-y-auto px-margin-mobile md:px-margin-desktop pb-16">
+<div class="max-w-container-max mx-auto space-y-gutter">
+<!-- Profile Header Bento -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-unit">
+<!-- Main Identity -->
+<div class="md:col-span-2 bg-surface-container-low border border-outline-variant/10 rounded-xl p-8 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h2 class="font-headline-md text-headline-sm md:text-headline-md text-primary mb-2">Alejandro Martínez</h2>
+<p class="font-body-md text-body-md text-secondary">Cliente desde Mar 2021 • VIP Nivel 2</p>
+</div>
+<button class="text-secondary hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<div class="flex flex-wrap gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">phone</span>
+<span class="font-body-md text-body-md text-on-surface">+54 11 4567-8900</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">mail</span>
+<span class="font-body-md text-body-md text-on-surface">amartinez@empresa.com.ar</span>
+</div>
+</div>
+</div>
+<!-- Loyalty & Credit -->
+<div class="bg-surface-container-low border border-outline-variant/10 rounded-xl p-6 flex flex-col gap-4">
+<div class="bg-surface-container-lowest p-4 rounded border border-outline-variant/10 flex justify-between items-center">
+<div>
+<p class="font-label-md text-caption text-secondary uppercase mb-1">Crédito a Favor</p>
+<p class="font-body-lg text-body-lg font-bold text-primary">$ 45.000</p>
+</div>
+<span class="material-symbols-outlined text-on-tertiary-container bg-tertiary-fixed-dim/20 p-2 rounded-full">account_balance_wallet</span>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded border border-outline-variant/10 flex justify-between items-center">
+<div>
+<p class="font-label-md text-caption text-secondary uppercase mb-1">Puntos Heritage</p>
+<p class="font-body-lg text-body-lg font-bold text-primary">12.450</p>
+</div>
+<span class="material-symbols-outlined text-tertiary bg-tertiary-fixed/30 p-2 rounded-full">stars</span>
+</div>
+</div>
+</div>
+<!-- Secondary Data Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-unit">
+<!-- Talles Habituales -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-6">
+<div class="flex items-center gap-2 mb-6 pb-4 border-b border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">straighten</span>
+<h3 class="font-headline-sm text-headline-sm text-primary">Talles Habituales</h3>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+<div class="text-center">
+<p class="font-label-md text-caption text-secondary uppercase mb-1">Calzado</p>
+<div class="font-body-md text-body-md font-bold text-on-surface bg-surface-container-low py-2 rounded">42 / 43</div>
+</div>
+<div class="text-center">
+<p class="font-label-md text-caption text-secondary uppercase mb-1">Camisa</p>
+<div class="font-body-md text-body-md font-bold text-on-surface bg-surface-container-low py-2 rounded">40 (M)</div>
+</div>
+<div class="text-center">
+<p class="font-label-md text-caption text-secondary uppercase mb-1">Pantalón</p>
+<div class="font-body-md text-body-md font-bold text-on-surface bg-surface-container-low py-2 rounded">44</div>
+</div>
+<div class="text-center">
+<p class="font-label-md text-caption text-secondary uppercase mb-1">Saco</p>
+<div class="font-body-md text-body-md font-bold text-on-surface bg-surface-container-low py-2 rounded">50 (Drop 6)</div>
+</div>
+</div>
+</div>
+<!-- Datos Fiscales -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-6">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant/10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">domain</span>
+<h3 class="font-headline-sm text-headline-sm text-primary">Datos Fiscales</h3>
+</div>
+<span class="font-label-md text-caption bg-tertiary-fixed text-on-tertiary-fixed px-2 py-1 rounded">Factura A</span>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between">
+<span class="font-body-md text-caption text-secondary">Razón Social</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">Martínez Consultores S.A.</span>
+</div>
+<div class="flex justify-between">
+<span class="font-body-md text-caption text-secondary">CUIT</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">30-71234567-8</span>
+</div>
+<div class="flex justify-between">
+<span class="font-body-md text-caption text-secondary">Condición IVA</span>
+<span class="font-body-md text-body-md text-on-surface font-medium">Responsable Inscripto</span>
+</div>
+<div class="flex justify-between">
+<span class="font-body-md text-caption text-secondary">Domicilio Fiscal</span>
+<span class="font-body-md text-body-md text-on-surface font-medium text-right max-w-[200px] truncate" title="Av. del Libertador 1234, Piso 5, CABA">Av. del Libertador 1234, CABA</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Historial de Compras (Ledger Style List) -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl overflow-hidden">
+<div class="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low/50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">receipt_long</span>
+<h3 class="font-headline-sm text-headline-sm text-primary">Historial de Compras</h3>
+</div>
+<button class="font-label-md text-label-md text-primary flex items-center gap-1 hover:underline">
+                            Ver todo <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/10 bg-surface-container-low">
+<th class="p-4 font-label-md text-caption text-secondary uppercase font-semibold">Fecha</th>
+<th class="p-4 font-label-md text-caption text-secondary uppercase font-semibold">Ticket</th>
+<th class="p-4 font-label-md text-caption text-secondary uppercase font-semibold">Marcas / Artículos principales</th>
+<th class="p-4 font-label-md text-caption text-secondary uppercase font-semibold text-right">Total</th>
+<th class="p-4 font-label-md text-caption text-secondary uppercase font-semibold text-center">Acción</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<tr class="border-b border-outline-variant/10 hover:bg-surface-container-low/50 transition-colors">
+<td class="p-4 text-on-surface-variant">12 Nov 2023</td>
+<td class="p-4 text-on-surface">#TK-4592</td>
+<td class="p-4">
+<div class="text-on-surface font-medium">Hugo Boss, Zegna</div>
+<div class="text-caption text-secondary mt-1">2 artículos (Traje, Corbata seda)</div>
+</td>
+<td class="p-4 text-right font-semibold text-primary">$ 850.000</td>
+<td class="p-4 text-center">
+<button class="text-secondary hover:text-primary transition-colors p-1" title="Ver detalle">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant/10 hover:bg-surface-container-low/50 transition-colors">
+<td class="p-4 text-on-surface-variant">05 Sep 2023</td>
+<td class="p-4 text-on-surface">#TK-4105</td>
+<td class="p-4">
+<div class="text-on-surface font-medium">Santoni</div>
+<div class="text-caption text-secondary mt-1">1 artículo (Zapatos Oxford)</div>
+</td>
+<td class="p-4 text-right font-semibold text-primary">$ 320.000</td>
+<td class="p-4 text-center">
+<button class="text-secondary hover:text-primary transition-colors p-1" title="Ver detalle">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="p-4 text-on-surface-variant">18 Jun 2023</td>
+<td class="p-4 text-on-surface">#TK-3820</td>
+<td class="p-4">
+<div class="text-on-surface font-medium">Eton, Incotex</div>
+<div class="text-caption text-secondary mt-1">3 artículos (2 Camisas, Pantalón)</div>
+</td>
+<td class="p-4 text-right font-semibold text-primary">$ 415.000</td>
+<td class="p-4 text-center">
+<button class="text-secondary hover:text-primary transition-colors p-1" title="Ver detalle">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

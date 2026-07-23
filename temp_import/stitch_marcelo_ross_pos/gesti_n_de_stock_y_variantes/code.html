@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stock Management - Marcelo Ross</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error-container": "#93000a",
+                    "on-tertiary-container": "#a88c69",
+                    "on-surface": "#141d23",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#dbe4ed",
+                    "tertiary": "#211200",
+                    "primary-fixed-dim": "#b7c8de",
+                    "surface-tint": "#4f6073",
+                    "on-surface-variant": "#44474c",
+                    "on-error": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#1a2b3c",
+                    "surface-bright": "#f6faff",
+                    "secondary-container": "#e4e2e1",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#b7c8de",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed": "#e4e2e1",
+                    "on-secondary-container": "#656464",
+                    "on-tertiary": "#ffffff",
+                    "surface-container": "#e6eff8",
+                    "surface-dim": "#d2dbe4",
+                    "surface-variant": "#dbe4ed",
+                    "inverse-on-surface": "#e9f2fb",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "background": "#f6faff",
+                    "outline": "#74777d",
+                    "surface-container-low": "#ecf5fe",
+                    "surface": "#f6faff",
+                    "on-tertiary-fixed-variant": "#584326",
+                    "on-secondary-fixed-variant": "#474747",
+                    "inverse-surface": "#293138",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#0b1d2d",
+                    "tertiary-fixed-dim": "#e1c29b",
+                    "on-tertiary-fixed": "#281802",
+                    "secondary": "#5f5e5e",
+                    "primary": "#041627",
+                    "tertiary-container": "#38260b",
+                    "primary-fixed": "#d2e4fb",
+                    "tertiary-fixed": "#feddb5",
+                    "secondary-fixed-dim": "#c8c6c5",
+                    "on-primary-container": "#8192a7",
+                    "surface-container-high": "#e0e9f2",
+                    "outline-variant": "#c4c6cd",
+                    "on-primary-fixed-variant": "#38485a",
+                    "on-background": "#141d23"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "unit": "8px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "display-lg": ["Playfair Display"],
+                    "display-lg-mobile": ["Playfair Display"],
+                    "headline-md": ["Playfair Display"],
+                    "headline-sm": ["Playfair Display"],
+                    "label-md": ["Inter"],
+                    "caption": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "display-lg-mobile": ["32px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "headline-sm": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "caption": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Minimal Scrollbar for the ledger feel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #dbe4ed;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #c4c6cd;
+        }
+        
+        .bento-glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(196, 198, 205, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden selection:bg-primary-fixed selection:text-on-primary-fixed">
+<div class="flex h-screen w-full">
+<!-- SideNavBar (Shared Component Blueprint) -->
+<nav class="fixed left-0 top-0 h-screen w-64 flex flex-col border-r border-outline-variant/10 z-40 bg-surface-container-low dark:bg-primary-container hidden md:flex">
+<!-- Header -->
+<div class="p-6 border-b border-outline-variant/10 flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-headline-sm">
+                        M
+                    </div>
+<div>
+<h1 class="font-display-lg text-headline-sm text-primary dark:text-primary-fixed m-0">Marcelo Ross</h1>
+<p class="font-label-md text-label-md text-secondary mt-1">Heritage Ledger POS</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-DEFAULT hover:bg-surface-tint transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">add</span>
+                    Nueva Venta
+                </button>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 overflow-y-auto py-4 flex flex-col gap-1">
+<!-- Ventas -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest dark:hover:bg-on-primary-fixed-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+                    Ventas
+                </a>
+<!-- Stock (ACTIVE) -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg bg-primary dark:bg-primary-fixed text-on-primary dark:text-on-primary-fixed font-label-md text-label-md scale-95 transition-transform shadow-sm" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+                    Stock
+                </a>
+<!-- Control de Caja -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+                    Control de Caja
+                </a>
+<!-- Empleados -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">badge</span>
+                    Empleados
+                </a>
+<!-- Clientes -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">group</span>
+                    Clientes
+                </a>
+<!-- Dashboard -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+<!-- Facturación -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+                    Facturación
+                </a>
+<!-- Proveedores -->
+<a class="flex items-center gap-3 px-4 py-3 mx-2 rounded-lg text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+                    Proveedores
+                </a>
+</div>
+<!-- Footer Navigation -->
+<div class="p-4 border-t border-outline-variant/10 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Configuración
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 mx-2 rounded-lg text-on-surface-variant hover:bg-surface-container-highest transition-all font-label-md text-label-md text-error" href="#">
+<span class="material-symbols-outlined">logout</span>
+                    Cerrar Sesión
+                </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 h-screen flex flex-col bg-surface relative z-0">
+<!-- Page Header & Global Actions -->
+<header class="px-margin-desktop pt-10 pb-6 flex justify-between items-end border-b border-outline-variant/10 bg-surface/80 backdrop-blur-md z-10 sticky top-0">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary m-0">Inventory Ledger</h2>
+<p class="font-body-md text-body-md text-secondary mt-1">Manage global stock across all variations.</p>
+</div>
+<div class="flex gap-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-DEFAULT font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary w-64 shadow-sm" placeholder="Search SKU or Name..." type="text"/>
+</div>
+</div>
+</header>
+<!-- Filters Bar -->
+<div class="px-margin-desktop py-4 flex gap-4 border-b border-outline-variant/10 bg-surface-container-lowest shadow-sm z-10">
+<div class="flex-1 flex gap-4">
+<!-- Brand Filter -->
+<div class="flex flex-col gap-1 w-48">
+<label class="font-label-md text-caption text-secondary uppercase tracking-widest">Brand</label>
+<select class="w-full bg-surface border border-outline-variant/20 rounded-DEFAULT px-3 py-2 font-body-md text-on-surface focus:border-primary appearance-none cursor-pointer">
+<option>All Brands (12)</option>
+<option>Zegna</option>
+<option>Brunello Cucinelli</option>
+<option>Canali</option>
+<option>Brioni</option>
+</select>
+</div>
+<!-- Season Filter -->
+<div class="flex flex-col gap-1 w-48">
+<label class="font-label-md text-caption text-secondary uppercase tracking-widest">Season</label>
+<select class="w-full bg-surface border border-outline-variant/20 rounded-DEFAULT px-3 py-2 font-body-md text-on-surface focus:border-primary appearance-none cursor-pointer">
+<option>Spring-Summer 24</option>
+<option>Autumn-Winter 23</option>
+<option>Core Classics</option>
+</select>
+</div>
+<!-- Category Filter -->
+<div class="flex flex-col gap-1 w-48">
+<label class="font-label-md text-caption text-secondary uppercase tracking-widest">Category</label>
+<select class="w-full bg-surface border border-outline-variant/20 rounded-DEFAULT px-3 py-2 font-body-md text-on-surface focus:border-primary appearance-none cursor-pointer">
+<option>Formal Shirts</option>
+<option>Suits</option>
+<option>Trousers</option>
+<option>Accessories</option>
+</select>
+</div>
+</div>
+<div class="flex items-end pb-1">
+<button class="flex items-center gap-2 text-primary font-label-md text-label-md uppercase tracking-wider hover:bg-surface-container-high px-3 py-2 rounded transition-colors">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                        More Filters
+                    </button>
+</div>
+</div>
+<!-- Workspace Layout -->
+<div class="flex-1 overflow-hidden p-margin-desktop flex gap-gutter">
+<!-- Left Column: Product List -->
+<div class="w-[380px] flex flex-col gap-4 overflow-y-auto pr-2 pb-10">
+<!-- Product Card 1 (Active) -->
+<div class="bg-surface-container-lowest border-2 border-primary rounded-lg p-3 flex gap-4 cursor-pointer shadow-sm relative overflow-hidden group">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+<div class="w-20 h-24 bg-surface-container shrink-0 rounded overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A meticulously styled flat lay of a premium men's formal dress shirt in crisp white Egyptian cotton, folded neatly against a minimalist grey concrete background. The lighting is soft and studio-quality, highlighting the subtle texture of the herringbone weave and the mother-of-pearl buttons. The overall aesthetic is highly tailored, luxurious, and clean, fitting a modern high-end menswear boutique." src="https://lh3.googleusercontent.com/aida-public/AB6AXuApL4iFB2UmMb4ZHW5S7y_JSaopTQvAWwj_sDNZJU9Auaqm2JO-6Ojx6sIlUWYyS7zICfi4EsvlOgkzpkm8XNR1zd0cB3zapcf5-t3guGH58kuY2gFq0vb7AkESL1SHgO0QemgLgubQ6TVdngwvYLSN4ZxafhkBI92SjHJVCSLDFOZTRwHWW1sqjJ-YjjOxZ2KUwQvMeY_iwqADtpkYVxBkya5_gsTNEOirCph1sbvPSDVPKiMUc1RG7eEewJOe7pOGw6UWqzs83FQ"/>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<span class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Brunello Cucinelli</span>
+<h3 class="font-headline-sm text-[16px] leading-tight text-primary mb-1">Herringbone Cotton Formal Shirt</h3>
+<div class="flex justify-between items-end mt-auto">
+<span class="font-body-md text-caption text-secondary">SKU: BC-SH-092</span>
+<span class="font-label-md text-label-md text-primary bg-primary-fixed px-2 py-0.5 rounded">142 Units</span>
+</div>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 flex gap-4 cursor-pointer hover:border-primary/50 transition-colors group">
+<div class="w-20 h-24 bg-surface-container shrink-0 rounded overflow-hidden">
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" data-alt="A close-up studio shot of a deeply textured navy blue worsted wool men's suit jacket, hanging on a dark wooden tailor's valet. The lighting creates a moody, chiaroscuro effect, emphasizing the rich color and fine drape of the Italian fabric. The scene feels distinctly corporate and sartorially elegant, with a focus on bespoke craftsmanship." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4zS44M_Nk-nOgupnB1cgiAy5xv0TbjB31uuz-h-GwIQmA7lTH-ViJwEDB2cOCi3-1kUclXXlIvIkEXqz8zl0ru6Tn_TjJm5_ZVQUNKJDhvTc3WXpVNYyNd2-wxevkGCvhjTaGZMDewYYUp18QV2PvkgrbiTPE3jtyu5DSF-DRISXg5xPFkMmRr9kse_uzG-9YZBdzHBYdjI2s9HI5ZcAfrXdCc8V2kx10UHrEBO40LADBhSnOvFip0Mvtr2PRK4S7F3A9hpuPfkc"/>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<span class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Zegna</span>
+<h3 class="font-headline-sm text-[16px] leading-tight text-on-surface mb-1">Trofeo Wool Suit Jacket</h3>
+<div class="flex justify-between items-end mt-auto">
+<span class="font-body-md text-caption text-secondary">SKU: ZG-SU-104</span>
+<span class="font-label-md text-label-md text-on-surface bg-surface-container-high px-2 py-0.5 rounded">28 Units</span>
+</div>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 flex gap-4 cursor-pointer hover:border-primary/50 transition-colors group">
+<div class="w-20 h-24 bg-surface-container shrink-0 rounded overflow-hidden">
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" data-alt="A beautifully arranged selection of luxurious silk ties in subtle geometric patterns, displayed on a pristine white marble surface. The colors range from deep burgundy to soft gold, illuminated by bright, clear natural light that reflects off the silk. The composition is highly geometric and structured, conveying a sense of organized, premium retail display." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDK2GldIMdHcGL7Q2P6T2FQE99ad1R7lU1ogzi1TBAKqDjQIDYg4mDouw4lIlCRfTavrqbo_6oPtJk4coUDC_b_QBQVQYgkfmML6YxawQ_kf0EiTEAMxkDzOsB6s12UymOLzRof6zGqrby5-dXp2EtjUxB2nRVHi97qcmt1EkC0fNsNcM97vcecargAOq33AGXb_bACJa5qYXZGcbKGUtsIEIe96GIhWt2rDpZE9RUXRP_nWjrDJNmGBcQFae7FcqivGydJT0I7rjM"/>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<span class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Canali</span>
+<h3 class="font-headline-sm text-[16px] leading-tight text-on-surface mb-1">Woven Silk Jacquard Tie</h3>
+<div class="flex justify-between items-end mt-auto">
+<span class="font-body-md text-caption text-secondary">SKU: CN-TI-011</span>
+<span class="font-label-md text-label-md text-on-error-container bg-error-container px-2 py-0.5 rounded">8 Units</span>
+</div>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant/20 rounded-lg p-3 flex gap-4 cursor-pointer hover:border-primary/50 transition-colors group">
+<div class="w-20 h-24 bg-surface-container shrink-0 rounded overflow-hidden">
+<img class="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all" data-alt="A single pair of sharply tailored charcoal grey men's dress trousers, draped elegantly over a minimal chrome clothing rack. The background is a stark, clean white wall, creating a high-contrast, modern minimalist aesthetic. The focus is entirely on the precision of the cut and the smooth, matte finish of the lightweight wool fabric." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1xOXa5lvXQ9Z9Jv75b2HBxaT-DoLtBDdYwid-voo0LQkifMxvWIMsxxe8OtM06-ObZdObiQZRR8XLK7iQ-FocbyEwqKl3912PXj2-nOfNVyV13EFlJbiChTa9PUpfk2l-joFejetAYWInCynEJdfdiKkFWLSU-WRE1go8nPQhKH8xQOY2ZlxSi7hGTlYj3uAfHKf1Sx94fz1SHNsgBLsE7wFTlAMkMELEiNBvJ_Hkp-a2Wbyx51kdI7W_cgEezsTtQIt-WhB4L64"/>
+</div>
+<div class="flex flex-col justify-center flex-1">
+<span class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Brioni</span>
+<h3 class="font-headline-sm text-[16px] leading-tight text-on-surface mb-1">Super 150s Wool Trousers</h3>
+<div class="flex justify-between items-end mt-auto">
+<span class="font-body-md text-caption text-secondary">SKU: BR-TR-442</span>
+<span class="font-label-md text-label-md text-on-surface bg-surface-container-high px-2 py-0.5 rounded">65 Units</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Bento Grid Detail View -->
+<div class="flex-1 flex flex-col gap-gutter overflow-y-auto pb-10 pr-2">
+<!-- Top Row: Meta & Actions -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-gutter shrink-0">
+<!-- Meta Card (Glassmorphism inspired) -->
+<div class="bento-glass rounded-xl p-6 flex flex-col relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+<div class="flex justify-between items-start mb-6 relative z-10">
+<div>
+<span class="font-label-md text-caption text-secondary uppercase tracking-widest bg-surface-container-high px-2 py-1 rounded-sm">Brunello Cucinelli</span>
+<h2 class="font-display-lg-mobile text-[28px] text-primary mt-2 leading-tight">Herringbone Cotton Formal Shirt</h2>
+</div>
+</div>
+<div class="flex gap-4 mt-auto relative z-10">
+<div class="w-16 h-16 rounded border border-outline-variant/20 overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="A macro detail shot of a crisp white cotton shirt collar, focusing on the fine stitching and the subtle herringbone weave pattern. The lighting is bright and directional, emphasizing the clean lines and premium construction of the garment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6WyKBB7Al0f2avmKrfsFfOubhHN-Q8UT7SooQ53m2FhgpYsW0T4oMOlmVPdF9guxGNiOWG0OgoLQYwh7Uqv1xoyffiK5gmlZliWZ_YFue5b4CTMh1Jaw2dau88nrl5keMFPquXgBmtlPzmdUsKOstw_Vf-ZdUD72nXIHYz53EEnph-56DjzoQ7qDL0QJ43tVWe6O-zkCk3ZBiazAJMvT9QjfkoGzVIr6oHALAE8WhwDOl63fn_3Mfv-O6fFbgijrO6Z1j9HQR1AI"/>
+</div>
+<div class="w-16 h-16 rounded border border-outline-variant/20 overflow-hidden bg-surface-container-lowest opacity-60">
+<img class="w-full h-full object-cover" data-alt="A close-up shot of a white mother-of-pearl button fastened on a finely woven cotton shirt placket. The iridescent quality of the button is captured beautifully under soft, diffused studio lighting, conveying meticulous attention to detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQjXEyrWNdTlQBgnG9MaNFZbV7BjH72EC4qwcsY5Eg2CcHRtFHYo0MzcGAmljEGvvRvyShBS4t5xLRxb6HGfOtTGepWu0JWWATEcF3-h75yt5Mwo8OGu9L_TUn9n6Up1OP5Qc6NvafWl2wsfRGj4MmLbk4XSxsf3XL4KAP2ZBem859i-tdGdTE56vBDLil_Lq-hWXW8wJ7XbWQ5t1P9oFl4LiWT0Q9YGRlGmIyO10QweeEMsU1WbDkLh2UOeB_YAMb5pUusTLVxFI"/>
+</div>
+<div class="w-16 h-16 rounded border border-outline-variant/20 flex items-center justify-center bg-surface-container-lowest text-secondary cursor-pointer hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">add_photo_alternate</span>
+</div>
+</div>
+</div>
+<!-- Actions & Quick Stats Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10 shadow-sm flex flex-col justify-between">
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 bg-surface rounded-lg border border-outline-variant/10">
+<p class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Total Variants</p>
+<p class="font-headline-sm text-primary">24</p>
+</div>
+<div class="p-4 bg-surface rounded-lg border border-outline-variant/10">
+<p class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Total Stock</p>
+<p class="font-headline-sm text-primary">142 <span class="text-caption font-normal text-secondary ml-1">Units</span></p>
+</div>
+<div class="p-4 bg-surface rounded-lg border border-outline-variant/10 col-span-2 flex justify-between items-center">
+<div>
+<p class="font-label-md text-caption text-secondary uppercase tracking-widest mb-1">Restock Status</p>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<p class="font-body-md text-on-surface">Healthy</p>
+</div>
+</div>
+<p class="font-body-md text-caption text-secondary">Last updated: Today, 09:41 AM</p>
+</div>
+</div>
+<button class="w-full mt-6 bg-primary text-on-primary font-label-md text-label-md py-4 rounded hover:bg-surface-tint transition-all uppercase tracking-widest flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+<span class="material-symbols-outlined">barcode_scanner</span>
+                                Generate Barcodes
+                            </button>
+</div>
+</div>
+<!-- The Matrix Card (Matriz de Talle x Color) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 shadow-sm flex flex-col flex-1 overflow-hidden">
+<div class="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low/50">
+<div>
+<h3 class="font-headline-sm text-primary">Matriz de Talle x Color</h3>
+<p class="font-body-md text-caption text-secondary mt-1">Live inventory levels across all physical dimensions.</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container-high rounded transition-colors" title="Export Matrix">
+<span class="material-symbols-outlined">download</span>
+</button>
+<button class="p-2 text-secondary hover:text-primary hover:bg-surface-container-high rounded transition-colors" title="Edit Grid">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="p-6 overflow-x-auto flex-1">
+<table class="w-full border-collapse">
+<thead>
+<tr>
+<th class="p-4 text-left font-label-md text-caption text-secondary uppercase tracking-widest border-b border-outline-variant/20 bg-surface w-32 sticky left-0 z-10">Color \ Size</th>
+<!-- Size Columns -->
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20">38</th>
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20">39</th>
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20">40</th>
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20 bg-surface-container-low/50">41</th>
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20 bg-surface-container-low/50">42</th>
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20">43</th>
+<th class="p-4 text-center font-label-md text-caption text-primary uppercase border-b border-outline-variant/20">44</th>
+<th class="p-4 text-center font-label-md text-caption text-secondary uppercase border-b border-outline-variant/20 border-l border-outline-variant/10">Total</th>
+</tr>
+</thead>
+<tbody>
+<!-- Row 1: White -->
+<tr class="hover:bg-surface-container-low/30 transition-colors group">
+<td class="p-4 border-b border-outline-variant/10 font-label-md text-body-md text-on-surface sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low/30 flex items-center gap-3">
+<div class="w-4 h-4 rounded-full border border-outline-variant/20 bg-white"></div>
+                                            White
+                                        </td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">12</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">15</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface font-semibold text-primary">24</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface bg-surface-container-low/20">18</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface bg-surface-container-low/20">10</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">5</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 border-l border-outline-variant/10 font-label-md text-primary bg-surface-container-low/10">84</td>
+</tr>
+<!-- Row 2: Light Blue -->
+<tr class="hover:bg-surface-container-low/30 transition-colors group bg-surface/30">
+<td class="p-4 border-b border-outline-variant/10 font-label-md text-body-md text-on-surface sticky left-0 bg-surface group-hover:bg-surface-container-low/30 flex items-center gap-3">
+<div class="w-4 h-4 rounded-full border border-outline-variant/20 bg-[#B5CDE1]"></div>
+                                            Light Blue
+                                        </td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">8</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">10</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">12</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface bg-surface-container-low/20">15</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface bg-surface-container-low/20 text-error font-semibold flex items-center justify-center gap-1">
+                                            2 <span class="material-symbols-outlined text-[14px]">warning</span>
+</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 border-l border-outline-variant/10 font-label-md text-primary bg-surface-container-low/10">47</td>
+</tr>
+<!-- Row 3: Navy -->
+<tr class="hover:bg-surface-container-low/30 transition-colors group">
+<td class="p-4 border-b border-outline-variant/10 font-label-md text-body-md text-on-surface sticky left-0 bg-surface-container-lowest group-hover:bg-surface-container-low/30 flex items-center gap-3">
+<div class="w-4 h-4 rounded-full border border-outline-variant/20 bg-primary"></div>
+                                            Navy
+                                        </td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface">5</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface bg-surface-container-low/20">3</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-on-surface bg-surface-container-low/20">3</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 font-body-md text-body-md text-secondary bg-surface-container-low/30 text-opacity-40">0</td>
+<td class="p-4 text-center border-b border-outline-variant/10 border-l border-outline-variant/10 font-label-md text-primary bg-surface-container-low/10">11</td>
+</tr>
+</tbody>
+<tfoot>
+<tr>
+<td class="p-4 font-label-md text-caption text-secondary uppercase tracking-widest sticky left-0 bg-surface-container-lowest">Total by Size</td>
+<td class="p-4 text-center font-label-md text-primary">20</td>
+<td class="p-4 text-center font-label-md text-primary">25</td>
+<td class="p-4 text-center font-label-md text-primary">41</td>
+<td class="p-4 text-center font-label-md text-primary">36</td>
+<td class="p-4 text-center font-label-md text-primary">15</td>
+<td class="p-4 text-center font-label-md text-primary">5</td>
+<td class="p-4 text-center font-label-md text-primary">0</td>
+<td class="p-4 text-center border-l border-outline-variant/10 font-headline-sm text-primary bg-surface-container-low/10">142</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

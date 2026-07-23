@@ -148,6 +148,7 @@ Detalle completo en [ADR-0001](adr/0001-offline-first-y-sincronizacion.md).
 | [0006](adr/0006-mercaderia-en-consignacion.md) | Manejo de mercadería en consignación | Aceptado |
 | [0007](adr/0007-monolito-modular.md) | Monolito modular vs. microservicios/packages | Aceptado |
 | [0008](adr/0008-auditoria-transversal-y-uuidv7.md) | Auditoría transversal + IDs UUIDv7 | Aceptado |
+| [0009](adr/0009-autenticacion-y-autorizacion.md) | Autenticación (Argon2id + sesión revocable) y RBAC por roles | Aceptado |
 
 ## 6. Preocupaciones transversales (`shared/`)
 

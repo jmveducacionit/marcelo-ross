@@ -15,6 +15,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { hash as argonHash } from '@node-rs/argon2';
 import { nuevoUuid, desdePesos, multiplicarPorCantidad, aplicarPorcentaje } from '@pos/core-domain';
 
 const prisma = new PrismaClient();
@@ -40,6 +41,8 @@ const nuevoCodigoBarras = () => String(7790000000000 + ++barcodeSeq);
 async function limpiar() {
   // Orden inverso a las dependencias (para re-ejecutar el seed).
   await prisma.$transaction([
+    prisma.sesion.deleteMany(),
+    prisma.usuario.deleteMany(),
     prisma.movimientoStock.deleteMany(),
     prisma.pago.deleteMany(),
     prisma.lineaVenta.deleteMany(),
@@ -86,6 +89,23 @@ async function main() {
       { id: nuevoUuid(), sucursalId: shoppingId, nombre: 'Shopping Caja 1' },
     ],
   });
+
+  // --- Usuarios (uno por rol) con contraseña hasheada (Argon2id) --------------
+  // Credenciales de DEMO — cambiar en producción. Documentadas en docs/prototipo.md.
+  const usuariosDef = [
+    { usuario: 'admin', nombre: 'Marcelo (Admin)', rol: 'ADMIN', pass: 'Admin.2026', suc: centroId },
+    { usuario: 'encargado', nombre: 'Encargada Centro', rol: 'ENCARGADO', pass: 'Encargado.2026', suc: centroId },
+    { usuario: 'cajero', nombre: 'Cajero Centro', rol: 'CAJERO', pass: 'Cajero.2026', suc: centroId },
+    { usuario: 'vendedor', nombre: 'Vendedor Centro', rol: 'VENDEDOR', pass: 'Vendedor.2026', suc: centroId },
+  ];
+  const usuariosData = await Promise.all(
+    usuariosDef.map(async (u) => ({
+      id: nuevoUuid(), nombre: u.nombre, usuario: u.usuario, email: `${u.usuario}@marceloross.local`,
+      hashPassword: await argonHash(u.pass), rol: u.rol, sucursalIdPrincipal: u.suc, activo: true,
+    })),
+  );
+  await prisma.usuario.createMany({ data: usuariosData });
+  const cajeroId = usuariosData.find((u) => u.rol === 'CAJERO')!.id;
 
   // --- Escalas de talle heterogéneas + talles ---------------------------------
   const escalas = {
@@ -305,7 +325,7 @@ async function main() {
 
     await prisma.venta.create({
       data: {
-        id: ventaId, sucursalId, cajaId: caja.id, vendedorId: 'seed',
+        id: ventaId, sucursalId, cajaId: caja.id, vendedorId: cajeroId,
         clienteId: cliente?.id ?? null, estadoVenta: 'CONFIRMADA',
         estadoEntrega: requiereAjuste ? 'PENDIENTE_AJUSTE' : 'ENTREGADA',
         subtotal, totalDescuentos: 0n, total,

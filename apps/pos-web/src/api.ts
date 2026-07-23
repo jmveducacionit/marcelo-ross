@@ -2,8 +2,12 @@
 
 export interface Caja { id: string; nombre: string }
 export interface Sucursal { id: string; nombre: string; esDepositoCentral: boolean; cajas: Caja[] }
-export interface Vendedor { id: string; nombre: string }
-export interface Contexto { sucursales: Sucursal[]; vendedores: Vendedor[] }
+export interface Contexto { sucursales: Sucursal[] }
+
+export interface Usuario {
+  id: string; nombre: string; usuario: string; rol: string;
+  sucursalIdPrincipal: string; permisos: string[];
+}
 
 export interface VarianteDTO {
   id: string; talle: string; talleOrden: number; color: string; colorHex: string | null;
@@ -12,7 +16,6 @@ export interface VarianteDTO {
 export interface ProductoDTO {
   id: string; nombre: string; marca: string; categoria: string; variantes: VarianteDTO[];
 }
-
 export interface VentaDTO {
   id: string; fechaHora: string; total: string; estadoEntrega: string;
   items: number; cliente: string; medios: string[]; vendedorId: string;
@@ -22,12 +25,29 @@ export interface ActividadDTO {
 }
 
 async function get<T>(url: string): Promise<T> {
-  const r = await fetch(url);
+  const r = await fetch(url, { credentials: 'include' });
+  if (r.status === 401) throw new NoAutenticado();
   if (!r.ok) throw new Error(`GET ${url} -> ${r.status}`);
   return r.json();
 }
 
+export class NoAutenticado extends Error {}
+
 export const api = {
+  // --- Auth ---
+  me: () => get<{ usuario: Usuario }>('/api/auth/me').then((r) => r.usuario),
+  login: async (usuario: string, password: string) => {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', body: JSON.stringify({ usuario, password }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data?.error ?? 'No se pudo iniciar sesión.');
+    return data.usuario as Usuario;
+  },
+  logout: () => fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }),
+
+  // --- Datos ---
   contexto: () => get<Contexto>('/api/contexto'),
   productos: (sucursalId: string, search: string) =>
     get<ProductoDTO[]>(`/api/productos?sucursalId=${sucursalId}&search=${encodeURIComponent(search)}`),
@@ -35,10 +55,12 @@ export const api = {
   actividad: (sucursalId: string) => get<ActividadDTO[]>(`/api/actividad?sucursalId=${sucursalId}`),
   confirmarVenta: async (body: unknown) => {
     const r = await fetch('/api/ventas', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', body: JSON.stringify(body),
     });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `POST /api/ventas -> ${r.status}`);
-    return r.json() as Promise<{ ventaId: string; total: string; estadoEntrega: string }>;
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data?.error ?? `Error al confirmar (${r.status}).`);
+    return data as { ventaId: string; total: string; estadoEntrega: string };
   },
 };
 

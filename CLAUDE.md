@@ -35,7 +35,7 @@ pero la arquitectura los contempla a todos desde el día 1.
 | 1 | **Ventas** | Ticket, carrito, descuentos, medios de pago mixtos, cambios/devoluciones, entrega diferida por ajustes de prenda | pendiente |
 | 2 | **Stock** | Variantes talle/color con escalas configurables, ingresos por remito, ajustes, transferencias, inventario físico, consignación, alertas, códigos de barras propios | pendiente |
 | 3 | **Control de Caja** | Apertura/cierre por turno y caja, arqueo, movimientos de efectivo, diferencias, conciliación de medios electrónicos | pendiente |
-| 4 | **Empleados** | Usuarios, roles y permisos, comisiones, turnos, ranking | pendiente |
+| 4 | **Empleados** | Usuarios, roles y permisos, comisiones, turnos, ranking | parcial (auth + RBAC ✅) |
 | 5 | **Clientes** | Ficha, historial (talles habituales), crédito a favor, fidelización, datos fiscales para Factura A | pendiente |
 | 6 | **Dashboard** | KPIs, rotación por marca/talle/temporada, márgenes, ranking, stock inmovilizado, comparativo entre sucursales | pendiente |
 | 7 | **Facturación** | Comprobantes electrónicos ante ARCA (A/B, NC/ND), CAE, múltiples puntos de venta, libro IVA ventas | pendiente |
@@ -175,6 +175,10 @@ pnpm db:migrate           # crear migración (prisma migrate dev)
   electrónica** (PDF/ticket 80mm con CAE + QR de ARCA), no controlador fiscal.
 - **Conciliación de medios electrónicos**: manual en V1 (importar liquidación a mano).
 - **Comisiones**: sobre **venta neta de devoluciones**, al liquidar (no al vender).
+- **Auth**: login por roles (Admin/Encargado/Cajero/Vendedor) con **Argon2id**,
+  **sesión server-side revocable** en cookie httpOnly, bloqueo por intentos y
+  auditoría de login; **RBAC** por mapa estático rol→permisos con guards por
+  endpoint. Código en `apps/pos-server/src/auth/`. Ver ADR-0009.
 
 ---
 

@@ -322,13 +322,36 @@ model ConciliacionElectronica {
 // ===========================================================================
 
 model Usuario {
-  id                  String  @id
+  id                  String    @id
   nombre              String
-  email               String  @unique
-  hashPassword        String
-  rol                 String // VENDEDOR | ENCARGADO | ADMIN | CONTADOR_RO
+  usuario             String    @unique // nombre de usuario para login
+  email               String?   @unique
+  hashPassword        String // Argon2id (ver auth). NUNCA texto plano.
+  rol                 String // ADMIN | ENCARGADO | CAJERO | VENDEDOR | CONTADOR_RO
   sucursalIdPrincipal String
-  activo              Boolean @default(true)
+  activo              Boolean   @default(true)
+  // Seguridad: control de intentos fallidos y bloqueo temporal (anti fuerza bruta).
+  intentosFallidos    Int       @default(0)
+  bloqueadoHasta      DateTime?
+  ultimoLogin         DateTime?
+  sesiones            Sesion[]
+}
+
+// Sesión server-side (revocable). El cliente guarda un token opaco en cookie
+// httpOnly; acá se guarda solo su HASH (si se filtra la DB, el token no sirve).
+model Sesion {
+  id         String    @id
+  tokenHash  String    @unique
+  usuarioId  String
+  sucursalId String?
+  creadaEn   DateTime  @default(now())
+  expiraEn   DateTime
+  revocadaEn DateTime?
+  ip         String?
+  userAgent  String?
+  usuario    Usuario   @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
 }
 
 model Comision {

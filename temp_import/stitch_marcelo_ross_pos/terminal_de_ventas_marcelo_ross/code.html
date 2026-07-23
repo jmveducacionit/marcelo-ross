@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Marcelo Ross - Ventas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Playfair+Display:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#a88c69",
+                        "on-surface": "#141d23",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#dbe4ed",
+                        "tertiary": "#211200",
+                        "primary-fixed-dim": "#b7c8de",
+                        "surface-tint": "#4f6073",
+                        "on-surface-variant": "#44474c",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#1a2b3c",
+                        "surface-bright": "#f6faff",
+                        "secondary-container": "#e4e2e1",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#b7c8de",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#e4e2e1",
+                        "on-secondary-container": "#656464",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#e6eff8",
+                        "surface-dim": "#d2dbe4",
+                        "surface-variant": "#dbe4ed",
+                        "inverse-on-surface": "#e9f2fb",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "background": "#f6faff",
+                        "outline": "#74777d",
+                        "surface-container-low": "#ecf5fe",
+                        "surface": "#f6faff",
+                        "on-tertiary-fixed-variant": "#584326",
+                        "on-secondary-fixed-variant": "#474747",
+                        "inverse-surface": "#293138",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#0b1d2d",
+                        "tertiary-fixed-dim": "#e1c29b",
+                        "on-tertiary-fixed": "#281802",
+                        "secondary": "#5f5e5e",
+                        "primary": "#041627",
+                        "tertiary-container": "#38260b",
+                        "primary-fixed": "#d2e4fb",
+                        "tertiary-fixed": "#feddb5",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "on-primary-container": "#8192a7",
+                        "surface-container-high": "#e0e9f2",
+                        "outline-variant": "#c4c6cd",
+                        "on-primary-fixed-variant": "#38485a",
+                        "on-background": "#141d23"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "unit": "8px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "display-lg": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "headline-sm": ["Playfair Display"],
+                        "label-md": ["Inter"],
+                        "caption": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-md": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "headline-sm": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-screen w-64 flex flex-col border-r border-outline-variant/10 z-40 bg-surface-container-low dark:bg-primary-container">
+<!-- Header -->
+<div class="p-6 border-b border-outline-variant/10 flex flex-col items-center gap-4">
+<div class="w-16 h-16 rounded-full overflow-hidden border border-outline-variant/20 flex items-center justify-center bg-surface-container-lowest">
+<span class="material-symbols-outlined text-4xl text-primary" data-icon="storefront">storefront</span>
+</div>
+<div class="text-center">
+<h1 class="font-display-lg text-headline-sm text-primary dark:text-primary-fixed">Marcelo Ross</h1>
+<p class="font-label-md text-label-md text-on-surface-variant mt-1">Heritage Ledger POS</p>
+</div>
+</div>
+<!-- CTA -->
+<div class="p-4">
+<button class="w-full bg-primary text-on-primary rounded py-3 font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                Nueva Venta
+            </button>
+</div>
+<!-- Main Nav -->
+<div class="flex-1 overflow-y-auto py-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-primary dark:bg-primary-fixed text-on-primary dark:text-on-primary-fixed rounded-lg mx-2 scale-95 transition-transform mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_cart" data-weight="fill" style="font-variation-settings: 'FILL' 1;">shopping_cart</span>
+<span class="font-label-md text-label-md">Ventas</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md">Stock</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Control de Caja</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="font-label-md text-label-md">Empleados</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label-md text-label-md">Clientes</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-md text-label-md">Facturación</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span class="font-label-md text-label-md">Proveedores</span>
+</a>
+</div>
+<!-- Footer Nav -->
+<div class="p-4 border-t border-outline-variant/10">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Configuración</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-on-primary-container hover:bg-surface-container-high mx-2 rounded-lg transition-all mb-1" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Cerrar Sesión</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-64 flex-1 flex flex-col h-screen bg-surface">
+<!-- TopAppBar Context -->
+<header class="flex justify-between items-center w-full px-8 h-20 z-30 bg-surface-container-lowest border-b border-outline-variant/10 flex-shrink-0">
+<div class="flex items-center gap-4 w-1/2">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant/20 rounded pl-10 pr-4 py-2 font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="Buscar por SKU, Nombre o Código de Barras..." type="text"/>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors" title="Escanear Código">
+<span class="material-symbols-outlined" data-icon="barcode_scanner">barcode_scanner</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 mr-4 border-r border-outline-variant/20 pr-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Cliente:</span>
+<button class="flex items-center gap-2 text-primary font-body-md hover:underline">
+<span>Seleccionar Cliente</span>
+<span class="material-symbols-outlined text-sm" data-icon="person_add">person_add</span>
+</button>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded transition-colors" title="Sincronizar">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<div class="w-8 h-8 bg-surface-container-high rounded-full flex items-center justify-center text-primary font-label-md border border-outline-variant/20">
+                    CA
+                </div>
+</div>
+</header>
+<!-- POS Canvas -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Left Side: Cart/List -->
+<section class="flex-1 flex flex-col bg-surface overflow-hidden">
+<!-- List Header -->
+<div class="grid grid-cols-12 gap-4 px-8 py-3 border-b border-outline-variant/10 bg-surface-container-lowest font-label-md text-label-md text-on-surface-variant uppercase sticky top-0 z-10">
+<div class="col-span-2">SKU</div>
+<div class="col-span-4">Producto</div>
+<div class="col-span-2">Talle / Color</div>
+<div class="col-span-2 text-right">Precio</div>
+<div class="col-span-2 text-right">Subtotal</div>
+</div>
+<!-- List Items -->
+<div class="flex-1 overflow-y-auto p-4 space-y-2">
+<!-- Item 1 -->
+<div class="group grid grid-cols-12 gap-4 px-4 py-4 bg-surface-container-lowest border border-outline-variant/10 rounded items-center hover:bg-surface-container-low transition-colors relative">
+<div class="col-span-2 font-caption text-caption text-on-surface-variant">MR-SUT-001</div>
+<div class="col-span-4 flex items-center gap-3">
+<div class="w-12 h-16 bg-surface-container-high rounded overflow-hidden flex-shrink-0" data-alt="A meticulously tailored navy blue worsted wool men's suit jacket hanging on a wooden hanger. Soft, directional studio lighting highlights the texture of the fabric and the crisp lines of the lapel against a minimalist neutral gray background. The overall aesthetic is high-end menswear luxury, clean and professional." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD1fwfSHb3H00Uj3GkYXN1AeNLlAiNZ1OKSNwNe0keEBVafWUthFmEX1H1-tParHbviCoe7u4Txlvy7NjBbAt8WwfYkxPGGlKUU1AEa7bfCfjc_iYrQGoHPjsdnHLeQ77i-3HrnCNeDbiZt0i13yJY6uViiUDVb2u-XWaZc7ShKOysyUFr9L_W0OWiiuKVy2dJFkXxOZyqVSqALL88a8l_EZipyOSE6MbwaAzdkythD1pRrWhviM10fvMeM7d6g5Hz5RqTVGKpI7nY')"></div>
+<div>
+<p class="font-headline-sm text-lg font-semibold text-on-surface">Traje Lana Fría Napoli</p>
+<p class="font-caption text-caption text-on-surface-variant">Colección Heritage</p>
+</div>
+</div>
+<div class="col-span-2">
+<div class="flex flex-col gap-1">
+<span class="px-2 py-1 bg-surface-container border border-outline-variant/20 rounded text-center font-label-md text-xs w-fit">Talle: 52</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant/20 rounded text-center font-label-md text-xs w-fit">Navy</span>
+</div>
+</div>
+<div class="col-span-2 text-right font-body-md">
+                            $ 450.000
+                        </div>
+<div class="col-span-2 text-right font-headline-sm text-lg">
+                            $ 450.000
+                        </div>
+<!-- Inline Actions (Hover) -->
+<div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-lowest/90 backdrop-blur-sm p-1 rounded border border-outline-variant/20 shadow-sm">
+<button class="p-1.5 text-on-surface-variant hover:text-primary rounded transition-colors" title="Ajuste de Prenda">
+<span class="material-symbols-outlined text-sm" data-icon="cut">cut</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-error rounded transition-colors" title="Eliminar">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Item 2 (With Adjustment) -->
+<div class="group grid grid-cols-12 gap-4 px-4 py-4 bg-surface-container-lowest border border-outline-variant/10 rounded items-center hover:bg-surface-container-low transition-colors relative border-l-2 border-l-tertiary-container">
+<div class="col-span-2 font-caption text-caption text-on-surface-variant">MR-SHR-045</div>
+<div class="col-span-4 flex items-center gap-3">
+<div class="w-12 h-16 bg-surface-container-high rounded overflow-hidden flex-shrink-0" data-alt="A crisp, neatly folded premium white poplin dress shirt. The shirt features a classic spread collar and mother-of-pearl buttons. Shot in a bright, modern studio setting with soft diffused lighting, emphasizing the pristine quality and smooth texture of the cotton fabric. Luxury retail styling." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuANHsXpE_LIxnzZkMZrKV0YEGZvUqehEHW0alAWHmwhIBKRjCrBSSXYCJA0G_7cE0gyVKuXCwQEqhKfN3LWWo9p1r5TWSiFidFHsm38mGETypS9v73ho4tWjy3BoY1ELbC_ySTjuCOM035FBAoXXGcedK3CO-_6A1rLU4AwD8TynqxNisL9lLeKGmhoJbqfnG2u3mLrSHb9YTD166AE7tVKMJeGv_IfZcNJCYUVcFBlvMi8YoYChVpJwCmytmf-e4ZueKrD3YiyHHo')"></div>
+<div>
+<p class="font-headline-sm text-lg font-semibold text-on-surface">Camisa Poplin Essential</p>
+<div class="flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-tertiary-container text-xs" data-icon="design_services">design_services</span>
+<span class="font-caption text-caption text-tertiary-container">Ajuste: Acortar Mangas</span>
+</div>
+</div>
+</div>
+<div class="col-span-2">
+<div class="flex flex-col gap-1">
+<span class="px-2 py-1 bg-surface-container border border-outline-variant/20 rounded text-center font-label-md text-xs w-fit">Talle: M (39)</span>
+<span class="px-2 py-1 bg-surface-container border border-outline-variant/20 rounded text-center font-label-md text-xs w-fit">Blanco</span>
+</div>
+</div>
+<div class="col-span-2 text-right font-body-md">
+                            $ 85.000
+                        </div>
+<div class="col-span-2 text-right font-headline-sm text-lg">
+                            $ 85.000
+                        </div>
+<!-- Inline Actions (Hover) -->
+<div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-lowest/90 backdrop-blur-sm p-1 rounded border border-outline-variant/20 shadow-sm">
+<button class="p-1.5 text-primary bg-primary/10 rounded transition-colors" title="Editar Ajuste">
+<span class="material-symbols-outlined text-sm" data-icon="cut">cut</span>
+</button>
+<button class="p-1.5 text-on-surface-variant hover:text-error rounded transition-colors" title="Eliminar">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Adjustment Notification Bar -->
+<div class="bg-tertiary-container/10 border-t border-tertiary-container/20 p-3 px-8 flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="info">info</span>
+<p class="font-caption text-caption text-on-surface">Esta venta contiene artículos con ajuste. Quedarán marcados como <strong>'Vendidos sin Entregar'</strong>.</p>
+</div>
+</section>
+<!-- Right Side: Checkout Panel -->
+<section class="w-[400px] bg-surface-container-lowest border-l border-outline-variant/10 flex flex-col z-20 flex-shrink-0 shadow-[-4px_0_12px_rgba(0,0,0,0.02)]">
+<!-- Totals -->
+<div class="p-8 border-b border-outline-variant/10">
+<div class="space-y-4 font-body-md">
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Subtotal (2 artículos)</span>
+<span>$ 535.000</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Descuentos</span>
+<span>$ 0</span>
+</div>
+<div class="pt-4 border-t border-outline-variant/10 mt-4">
+<div class="flex justify-between items-end">
+<span class="font-headline-sm text-xl">Total</span>
+<span class="font-display-lg text-4xl text-primary">$ 535.000</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Payment Methods -->
+<div class="p-8 flex-1 overflow-y-auto">
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase mb-4">Medio de Pago</h3>
+<div class="grid grid-cols-2 gap-3">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="payment" type="radio"/>
+<div class="p-4 border border-outline-variant/20 rounded bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-container-high transition-all flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="payments">payments</span>
+<span class="font-label-md text-sm">Efectivo</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="payment" type="radio"/>
+<div class="p-4 border border-outline-variant/20 rounded bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-container-high transition-all flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="credit_card">credit_card</span>
+<span class="font-label-md text-sm">Débito / Crédito</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="payment" type="radio"/>
+<div class="p-4 border border-outline-variant/20 rounded bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-container-high transition-all flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="qr_code_scanner">qr_code_scanner</span>
+<span class="font-label-md text-sm">MODO / QR</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="payment" type="radio"/>
+<div class="p-4 border border-outline-variant/20 rounded bg-surface-container-low peer-checked:border-primary peer-checked:bg-surface-container-high transition-all flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance">account_balance</span>
+<span class="font-label-md text-sm">Transferencia</span>
+</div>
+</label>
+</div>
+<!-- Payment Details (Conditional context) -->
+<div class="mt-6 p-4 bg-surface-container rounded border border-outline-variant/20 hidden">
+<!-- Details would go here based on selection -->
+</div>
+</div>
+<!-- Actions -->
+<div class="p-6 bg-surface-container-lowest border-t border-outline-variant/10 flex flex-col gap-3">
+<button class="w-full py-3 border border-primary text-primary rounded font-label-md uppercase tracking-wider hover:bg-surface-container-low transition-colors">
+                        Aplicar Descuento
+                    </button>
+<button class="w-full py-4 bg-primary text-on-primary rounded font-label-md text-lg uppercase tracking-wider shadow-sm hover:opacity-90 transition-opacity">
+                        Finalizar Venta
+                    </button>
+</div>
+</section>
+</div>
+</main>
+</body></html>

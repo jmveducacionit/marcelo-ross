@@ -1,7 +1,17 @@
 # Módulo: Empleados
 
-- **Estado**: pendiente
-- **Etapa de implementación**: 8 (roles/permisos mínimos ya en Etapa 1)
+- **Estado**: parcial — **autenticación + RBAC implementados** (`apps/pos-server/src/auth/`);
+  comisiones, turnos y ranking siguen pendientes.
+- **Etapa de implementación**: 8 (auth adelantado a pedido)
+
+## Autenticación (implementado)
+
+Login por roles **Admin / Encargado / Cajero / Vendedor** (+ Contador RO). Argon2id,
+sesión server-side revocable en cookie httpOnly, bloqueo por intentos, auditoría de
+login. RBAC por mapa estático rol→permisos (`auth/permisos.ts`) con guards por
+endpoint. Ver [ADR-0009](../../../../../docs/adr/0009-autenticacion-y-autorizacion.md)
+y la matriz en `auth/permisos.ts`. Usuarios de demo en
+[docs/prototipo.md](../../../../../docs/prototipo.md).
 
 ## Responsabilidad
 

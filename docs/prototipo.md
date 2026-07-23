@@ -47,6 +47,22 @@ pnpm dev:web
 
 Listo: abrí **http://127.0.0.1:5173**.
 
+## Usuarios de demo (login)
+
+El seed crea un usuario por rol. Contraseñas de **demo** (cambiar en producción):
+
+| Usuario | Contraseña | Rol | Puede cobrar |
+|---|---|---|:--:|
+| `admin` | `Admin.2026` | Administrador | ✅ |
+| `encargado` | `Encargado.2026` | Encargado | ✅ |
+| `cajero` | `Cajero.2026` | Cajero | ✅ |
+| `vendedor` | `Vendedor.2026` | Vendedor | ❌ (arma el ticket; el cobro lo cierra un Cajero) |
+
+Probá entrar como **vendedor**: vas a ver el botón "Confirmar venta" deshabilitado
+y el aviso de que el cobro lo cierra un Cajero (RBAC en acción). Entrá como
+**cajero** para cobrar. Auth: Argon2id + sesión httpOnly revocable + bloqueo por
+intentos + auditoría de login. Ver [ADR-0009](adr/0009-autenticacion-y-autorizacion.md).
+
 ## Notas
 
 - El puerto de la base es **54329** (no 5432) porque en la máquina de desarrollo
@@ -70,7 +86,8 @@ Listo: abrí **http://127.0.0.1:5173**.
 
 ## Lo que todavía NO es real (pendiente, por diseño)
 
-- **Auth**: el vendedor se elige de una lista fija; no hay login todavía (Etapa 8).
+- **Auth**: ✅ implementado (login por roles, sesión revocable, RBAC). Falta la
+  **gestión de usuarios por UI** (hoy se siembran) y recuperación de contraseña.
 - **Facturación/CAE**: la venta encola el evento, pero la emisión ante ARCA no está
   integrada (Etapa 5). El comprobante quedaría `PENDIENTE`.
 - **Descuentos, devoluciones, caja, transferencias**: contrato definido, aún sin UI.

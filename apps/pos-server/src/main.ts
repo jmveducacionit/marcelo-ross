@@ -1,31 +1,63 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import { prisma } from './db.js';
 import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
 import { confirmarVenta } from './services/ventas.js';
+import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
+import { requiereAuth, requierePermiso } from './auth/guards.js';
+import { permisosDe } from './auth/permisos.js';
 
 // --- Serializar BigInt (Money en centavos) como string en las respuestas JSON ---
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (BigInt.prototype as any).toJSON = function () { return this.toString(); };
 
 const app = Fastify({ logger: false });
-await app.register(cors, { origin: true });
+await app.register(cors, { origin: true, credentials: true });
+await app.register(cookie);
 
 // Consumidor in-process de ejemplo: loguea cada evento publicado (post-commit).
 bus.on('*', (e) => console.log(`[evento] ${e.tipo} venta=${e.payload?.ventaId ?? ''}`));
 
-// Vendedores de demo (sin auth real todavía — ver roadmap Etapa 8).
-const VENDEDORES = [
-  { id: 'vend-ana', nombre: 'Ana' },
-  { id: 'vend-bruno', nombre: 'Bruno' },
-  { id: 'vend-caro', nombre: 'Caro' },
-];
+const TTL_SESION_SEG = 12 * 60 * 60;
 
 app.get('/api/health', async () => ({ ok: true }));
 
-// Contexto para poblar los selectores del front.
-app.get('/api/contexto', async () => {
+// --- Autenticación ---------------------------------------------------------
+app.post('/api/auth/login', async (req, reply) => {
+  const body = req.body as { usuario?: string; password?: string };
+  if (!body?.usuario || !body?.password) {
+    return reply.code(400).send({ error: 'Faltan usuario y contraseña.' });
+  }
+  try {
+    const { token, usuario } = await login(body.usuario, body.password, {
+      ip: req.ip, userAgent: req.headers['user-agent'],
+    });
+    reply.setCookie(COOKIE_SESION, token, {
+      httpOnly: true, sameSite: 'lax', path: '/', maxAge: TTL_SESION_SEG,
+      // secure: true en producción (HTTPS). En LAN http queda false.
+    });
+    return { usuario: { ...usuario, permisos: permisosDe(usuario.rol) } };
+  } catch (e) {
+    if (e instanceof ErrorAuth) return reply.code(401).send({ error: e.message });
+    throw e;
+  }
+});
+
+app.post('/api/auth/logout', async (req, reply) => {
+  await logout(req.cookies?.[COOKIE_SESION]);
+  reply.clearCookie(COOKIE_SESION, { path: '/' });
+  return { ok: true };
+});
+
+app.get('/api/auth/me', { preHandler: requiereAuth }, async (req) => {
+  const u = req.usuario!;
+  return { usuario: { ...u, permisos: permisosDe(u.rol) } };
+});
+
+// --- Datos (requieren sesión) ----------------------------------------------
+app.get('/api/contexto', { preHandler: requiereAuth }, async () => {
   const sucursales = await prisma.sucursal.findMany({
     orderBy: { nombre: 'asc' },
     include: { cajas: { orderBy: { nombre: 'asc' } } },
@@ -35,31 +67,32 @@ app.get('/api/contexto', async () => {
       id: s.id, nombre: s.nombre, esDepositoCentral: s.esDepositoCentral,
       cajas: s.cajas.map((c) => ({ id: c.id, nombre: c.nombre })),
     })),
-    vendedores: VENDEDORES,
   };
 });
 
-app.get('/api/clientes', async () => {
+app.get('/api/clientes', { preHandler: requiereAuth }, async () => {
   const clientes = await prisma.cliente.findMany({ orderBy: { nombre: 'asc' } });
   return clientes.map((c) => ({ id: c.id, nombre: c.nombre, condicionIva: c.condicionIva, esFacturaA: !!c.cuit }));
 });
 
-app.get('/api/productos', async (req) => {
+app.get('/api/productos', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { sucursalId?: string; search?: string };
   if (!q.sucursalId) return [];
   return buscarProductos(q.sucursalId, q.search ?? '');
 });
 
-app.post('/api/ventas', async (req, reply) => {
+// Confirmar venta: requiere permiso de cobro. El vendedor sale de la SESIÓN
+// (no se confía en el cliente).
+app.post('/api/ventas', { preHandler: requierePermiso('ventas.cobrar') }, async (req, reply) => {
   const body = req.body as Parameters<typeof confirmarVenta>[0];
-  if (!body?.sucursalId || !body?.cajaId || !body?.vendedorId || !Array.isArray(body.lineas) || body.lineas.length === 0) {
+  if (!body?.sucursalId || !body?.cajaId || !Array.isArray(body.lineas) || body.lineas.length === 0) {
     return reply.code(400).send({ error: 'Faltan datos de la venta o no hay líneas.' });
   }
-  const res = await confirmarVenta({ ...body, pagos: body.pagos ?? [] });
+  const res = await confirmarVenta({ ...body, vendedorId: req.usuario!.id, pagos: body.pagos ?? [] });
   return reply.code(201).send(res);
 });
 
-app.get('/api/ventas', async (req) => {
+app.get('/api/ventas', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { sucursalId?: string };
   const ventas = await prisma.venta.findMany({
     where: q.sucursalId ? { sucursalId: q.sucursalId } : {},
@@ -68,19 +101,14 @@ app.get('/api/ventas', async (req) => {
     include: { lineas: true, pagos: true, cliente: true },
   });
   return ventas.map((v) => ({
-    id: v.id,
-    fechaHora: v.fechaHora,
-    total: v.total.toString(),
-    estadoEntrega: v.estadoEntrega,
+    id: v.id, fechaHora: v.fechaHora, total: v.total.toString(), estadoEntrega: v.estadoEntrega,
     items: v.lineas.reduce((n, l) => n + l.cantidad, 0),
     cliente: v.cliente?.nombre ?? 'Consumidor Final',
-    medios: [...new Set(v.pagos.map((p) => p.medio))],
-    vendedorId: v.vendedorId,
+    medios: [...new Set(v.pagos.map((p) => p.medio))], vendedorId: v.vendedorId,
   }));
 });
 
-// Actividad: eventos de dominio (Outbox) + auditoría, mezclados por tiempo.
-app.get('/api/actividad', async (req) => {
+app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { sucursalId?: string };
   const where = q.sucursalId ? { sucursalId: q.sucursalId } : {};
   const [eventos, auditoria] = await Promise.all([
