@@ -7,6 +7,7 @@ import { buscarProductos } from './services/catalogo.js';
 import { confirmarVenta } from './services/ventas.js';
 import { kpis } from './services/dashboard.js';
 import { stockListado, stockDetalle } from './services/stock.js';
+import { clientesListado, clienteDetalle } from './services/clientes.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -72,9 +73,15 @@ app.get('/api/contexto', { preHandler: requiereAuth }, async () => {
   };
 });
 
-app.get('/api/clientes', { preHandler: requiereAuth }, async () => {
-  const clientes = await prisma.cliente.findMany({ orderBy: { nombre: 'asc' } });
-  return clientes.map((c) => ({ id: c.id, nombre: c.nombre, condicionIva: c.condicionIva, esFacturaA: !!c.cuit }));
+app.get('/api/clientes', { preHandler: requiereAuth }, async (req) => {
+  const q = req.query as { search?: string };
+  return clientesListado(q.search ?? '');
+});
+app.get('/api/clientes/:id', { preHandler: requiereAuth }, async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const det = await clienteDetalle(id);
+  if (!det) return reply.code(404).send({ error: 'Cliente no encontrado.' });
+  return det;
 });
 
 app.get('/api/productos', { preHandler: requiereAuth }, async (req) => {

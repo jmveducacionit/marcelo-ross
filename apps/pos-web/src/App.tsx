@@ -7,6 +7,7 @@ import { AppShell } from './components/AppShell';
 import { VentasPage } from './pages/VentasPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { StockPage } from './pages/StockPage';
+import { ClientesPage } from './pages/ClientesPage';
 import { EnConstruccion } from './pages/EnConstruccion';
 
 export function App() {
@@ -29,7 +30,7 @@ export function App() {
           <Route path="/stock" element={<StockPage />} />
           <Route path="/caja" element={<EnConstruccion titulo="Control de Caja" icon="account_balance_wallet" detalle="Apertura/cierre por turno, arqueo y conciliación de medios electrónicos." />} />
           <Route path="/empleados" element={<EnConstruccion titulo="Empleados" icon="badge" detalle="Auth y roles ya implementados. Faltan comisiones, turnos y ranking, más la gestión de usuarios por UI." />} />
-          <Route path="/clientes" element={<EnConstruccion titulo="Clientes" icon="group" detalle="Ficha, historial, talles habituales y crédito a favor. Próxima pantalla desde el mockup." />} />
+          <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/facturacion" element={<EnConstruccion titulo="Facturación" icon="receipt_long" detalle="Comprobantes A/B, notas de crédito, CAE ante ARCA (vía intermediario) y libro IVA." />} />
           <Route path="/proveedores" element={<EnConstruccion titulo="Proveedores" icon="local_shipping" detalle="Órdenes de compra por temporada, recepción contra remito, cuenta corriente y liquidación de consignación." />} />

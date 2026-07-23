@@ -36,7 +36,7 @@ pero la arquitectura los contempla a todos desde el día 1.
 | 2 | **Stock** | Variantes talle/color con escalas configurables, ingresos por remito, ajustes, transferencias, inventario físico, consignación, alertas, códigos de barras propios | parcial (consulta + matriz ✅) |
 | 3 | **Control de Caja** | Apertura/cierre por turno y caja, arqueo, movimientos de efectivo, diferencias, conciliación de medios electrónicos | pendiente |
 | 4 | **Empleados** | Usuarios, roles y permisos, comisiones, turnos, ranking | parcial (auth + RBAC ✅) |
-| 5 | **Clientes** | Ficha, historial (talles habituales), crédito a favor, fidelización, datos fiscales para Factura A | pendiente |
+| 5 | **Clientes** | Ficha, historial (talles habituales), crédito a favor, fidelización, datos fiscales para Factura A | parcial (ficha + historial ✅) |
 | 6 | **Dashboard** | KPIs, rotación por marca/talle/temporada, márgenes, ranking, stock inmovilizado, comparativo entre sucursales | parcial (KPIs ✅) |
 | 7 | **Facturación** | Comprobantes electrónicos ante ARCA (A/B, NC/ND), CAE, múltiples puntos de venta, libro IVA ventas | pendiente |
 | 8 | **Proveedores** | Alta, órdenes de compra por temporada, recepción contra remito, cuenta corriente, costos/precios, liquidación de consignación | pendiente |
