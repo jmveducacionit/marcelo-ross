@@ -208,3 +208,8 @@ pnpm db:migrate           # crear migración (prisma migrate dev)
 - `docs/roadmap.md` — orden de implementación y criterios de "terminado".
 - `docs/adr/` — un ADR por decisión no trivial.
 - `apps/pos-server/src/modules/<modulo>/README.md` — responsabilidad, API pública y estado de cada módulo.
+- `docs/diseno/` — **design system "Heritage Ledger"** (tokens, tipografías, mockups
+  Stitch). Aplicado al front vía `apps/pos-web/src/index.css` (`@theme` de Tailwind v4).
+  Paleta: navy `#041627` + acento oro `#a88c69` sobre crema `#f6faff`; Playfair
+  Display (títulos) + Inter (UI); íconos Material Symbols. Fuentes self-hosted
+  (offline-first, sin CDN).
