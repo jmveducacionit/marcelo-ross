@@ -70,6 +70,14 @@ async function get<T>(url: string): Promise<T> {
 
 export class NoAutenticado extends Error {}
 
+async function post<T = unknown>(url: string, body: unknown): Promise<T> {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new NoAutenticado();
+  if (!r.ok) throw new Error((data as { error?: string })?.error ?? `POST ${url} -> ${r.status}`);
+  return data as T;
+}
+
 export const api = {
   // --- Auth ---
   me: () => get<{ usuario: Usuario }>('/api/auth/me').then((r) => r.usuario),
@@ -95,6 +103,9 @@ export const api = {
   stockDetalle: (productoId: string, sucursalId: string) => get<StockDetalleDTO>(`/api/stock/${productoId}?sucursalId=${sucursalId}`),
   clientes: (search: string) => get<ClienteItemDTO[]>(`/api/clientes?search=${encodeURIComponent(search)}`),
   clienteDetalle: (id: string) => get<ClienteDetalleDTO>(`/api/clientes/${id}`),
+  stockIngreso: (body: { varianteId: string; sucursalId: string; cantidad: number }) => post('/api/stock/ingreso', body),
+  stockAjuste: (body: { varianteId: string; sucursalId: string; nuevaCantidad: number }) => post('/api/stock/ajuste', body),
+  stockTransferencia: (body: { varianteId: string; origenId: string; destinoId: string; cantidad: number }) => post('/api/stock/transferencia', body),
   confirmarVenta: async (body: unknown) => {
     const r = await fetch('/api/ventas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
