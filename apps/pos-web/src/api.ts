@@ -24,6 +24,14 @@ export interface ActividadDTO {
   tipo: 'evento' | 'auditoria'; clave: string; estado: string; ocurridoEn: string;
 }
 
+export interface DashboardDTO {
+  ventasHoy: string; tickets: number; ticketPromedio: string; compVsAyer: number | null;
+  porSucursal: { sucursal: string; monto: string }[];
+  ranking: { nombre: string; sucursal: string; monto: string; tickets: number }[];
+  marcasTop: { marca: string; monto: string; pct: number }[];
+  inmovilizado: { articulos: number; valor: string; variantes: number };
+}
+
 async function get<T>(url: string): Promise<T> {
   const r = await fetch(url, { credentials: 'include' });
   if (r.status === 401) throw new NoAutenticado();
@@ -53,6 +61,7 @@ export const api = {
     get<ProductoDTO[]>(`/api/productos?sucursalId=${sucursalId}&search=${encodeURIComponent(search)}`),
   ventas: (sucursalId: string) => get<VentaDTO[]>(`/api/ventas?sucursalId=${sucursalId}`),
   actividad: (sucursalId: string) => get<ActividadDTO[]>(`/api/actividad?sucursalId=${sucursalId}`),
+  dashboard: () => get<DashboardDTO>('/api/dashboard'),
   confirmarVenta: async (body: unknown) => {
     const r = await fetch('/api/ventas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

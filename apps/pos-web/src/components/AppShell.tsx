@@ -7,15 +7,15 @@ const ROL_LABEL: Record<string, string> = {
   ADMIN: 'Administrador', ENCARGADO: 'Encargado', CAJERO: 'Cajero', VENDEDOR: 'Vendedor', CONTADOR_RO: 'Contador',
 };
 
-const NAV = [
+const NAV: { to: string; icon: string; label: string; permiso?: string }[] = [
   { to: '/ventas', icon: 'shopping_cart', label: 'Ventas' },
   { to: '/stock', icon: 'inventory_2', label: 'Stock' },
-  { to: '/caja', icon: 'account_balance_wallet', label: 'Control de Caja' },
-  { to: '/empleados', icon: 'badge', label: 'Empleados' },
+  { to: '/caja', icon: 'account_balance_wallet', label: 'Control de Caja', permiso: 'caja.operar' },
+  { to: '/empleados', icon: 'badge', label: 'Empleados', permiso: 'usuarios.gestionar' },
   { to: '/clientes', icon: 'group', label: 'Clientes' },
-  { to: '/dashboard', icon: 'dashboard', label: 'Dashboard' },
-  { to: '/facturacion', icon: 'receipt_long', label: 'Facturación' },
-  { to: '/proveedores', icon: 'local_shipping', label: 'Proveedores' },
+  { to: '/dashboard', icon: 'dashboard', label: 'Dashboard', permiso: 'reportes.ver' },
+  { to: '/facturacion', icon: 'receipt_long', label: 'Facturación', permiso: 'reportes.ver' },
+  { to: '/proveedores', icon: 'local_shipping', label: 'Proveedores', permiso: 'precios.gestionar' },
 ];
 
 async function salir() {
@@ -40,7 +40,7 @@ export function AppShell() {
         </div>
 
         <div className="flex-1 overflow-y-auto py-3">
-          {NAV.map((n) => (
+          {NAV.filter((n) => !n.permiso || user.permisos.includes(n.permiso)).map((n) => (
             <NavLink key={n.to} to={n.to}
               className={({ isActive }) => `flex items-center gap-3 px-4 py-2.5 mx-2 mb-1 rounded-lg text-sm font-semibold transition-colors ${
                 isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}>

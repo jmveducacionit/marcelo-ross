@@ -5,6 +5,7 @@ import { prisma } from './db.js';
 import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
 import { confirmarVenta } from './services/ventas.js';
+import { kpis } from './services/dashboard.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -121,6 +122,9 @@ app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
   ].sort((a, b) => +new Date(b.ocurridoEn) - +new Date(a.ocurridoEn)).slice(0, 16);
   return items;
 });
+
+// Dashboard: KPIs (requiere permiso de reportes → Admin / Encargado / Contador).
+app.get('/api/dashboard', { preHandler: requierePermiso('reportes.ver') }, async () => kpis());
 
 const PORT = Number(process.env.PORT ?? 3000);
 await app.listen({ port: PORT, host: '127.0.0.1' });
