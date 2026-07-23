@@ -6,6 +6,7 @@ import { Login } from './pages/Login';
 import { AppShell } from './components/AppShell';
 import { VentasPage } from './pages/VentasPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { StockPage } from './pages/StockPage';
 import { EnConstruccion } from './pages/EnConstruccion';
 
 export function App() {
@@ -25,7 +26,7 @@ export function App() {
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/ventas" replace />} />
           <Route path="/ventas" element={<VentasPage />} />
-          <Route path="/stock" element={<EnConstruccion titulo="Gestión de Stock" icon="inventory_2" detalle="Variantes talle×color, ingresos, transferencias e inventario. Próxima pantalla desde el mockup." />} />
+          <Route path="/stock" element={<StockPage />} />
           <Route path="/caja" element={<EnConstruccion titulo="Control de Caja" icon="account_balance_wallet" detalle="Apertura/cierre por turno, arqueo y conciliación de medios electrónicos." />} />
           <Route path="/empleados" element={<EnConstruccion titulo="Empleados" icon="badge" detalle="Auth y roles ya implementados. Faltan comisiones, turnos y ranking, más la gestión de usuarios por UI." />} />
           <Route path="/clientes" element={<EnConstruccion titulo="Clientes" icon="group" detalle="Ficha, historial, talles habituales y crédito a favor. Próxima pantalla desde el mockup." />} />

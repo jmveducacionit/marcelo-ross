@@ -33,7 +33,7 @@ pero la arquitectura los contempla a todos desde el día 1.
 | # | Módulo | Responsabilidad | Estado |
 |---|--------|-----------------|--------|
 | 1 | **Ventas** | Ticket, carrito, descuentos, medios de pago mixtos, cambios/devoluciones, entrega diferida por ajustes de prenda | pendiente |
-| 2 | **Stock** | Variantes talle/color con escalas configurables, ingresos por remito, ajustes, transferencias, inventario físico, consignación, alertas, códigos de barras propios | pendiente |
+| 2 | **Stock** | Variantes talle/color con escalas configurables, ingresos por remito, ajustes, transferencias, inventario físico, consignación, alertas, códigos de barras propios | parcial (consulta + matriz ✅) |
 | 3 | **Control de Caja** | Apertura/cierre por turno y caja, arqueo, movimientos de efectivo, diferencias, conciliación de medios electrónicos | pendiente |
 | 4 | **Empleados** | Usuarios, roles y permisos, comisiones, turnos, ranking | parcial (auth + RBAC ✅) |
 | 5 | **Clientes** | Ficha, historial (talles habituales), crédito a favor, fidelización, datos fiscales para Factura A | pendiente |

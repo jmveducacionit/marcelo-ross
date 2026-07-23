@@ -32,6 +32,21 @@ export interface DashboardDTO {
   inmovilizado: { articulos: number; valor: string; variantes: number };
 }
 
+export interface StockItemDTO {
+  id: string; nombre: string; marca: string; categoria: string; codigo: string;
+  variantes: number; totalStock: number; esConsignacion: boolean; estado: 'ok' | 'bajo' | 'agotado';
+}
+export interface Celda { stock: number; varianteId: string; codigoBarras: string }
+export interface StockDetalleDTO {
+  producto: { id: string; nombre: string; marca: string; categoria: string; totalStock: number; totalVariantes: number; esConsignacion: boolean; estado: 'ok' | 'bajo' | 'agotado' };
+  talles: { id: string; etiqueta: string; orden: number }[];
+  colores: { id: string; nombre: string; hex: string | null }[];
+  celdas: Record<string, Record<string, Celda | null>>;
+  totalPorTalle: Record<string, number>;
+  totalPorColor: Record<string, number>;
+  total: number;
+}
+
 async function get<T>(url: string): Promise<T> {
   const r = await fetch(url, { credentials: 'include' });
   if (r.status === 401) throw new NoAutenticado();
@@ -62,6 +77,8 @@ export const api = {
   ventas: (sucursalId: string) => get<VentaDTO[]>(`/api/ventas?sucursalId=${sucursalId}`),
   actividad: (sucursalId: string) => get<ActividadDTO[]>(`/api/actividad?sucursalId=${sucursalId}`),
   dashboard: () => get<DashboardDTO>('/api/dashboard'),
+  stock: (sucursalId: string, search: string) => get<StockItemDTO[]>(`/api/stock?sucursalId=${sucursalId}&search=${encodeURIComponent(search)}`),
+  stockDetalle: (productoId: string, sucursalId: string) => get<StockDetalleDTO>(`/api/stock/${productoId}?sucursalId=${sucursalId}`),
   confirmarVenta: async (body: unknown) => {
     const r = await fetch('/api/ventas', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

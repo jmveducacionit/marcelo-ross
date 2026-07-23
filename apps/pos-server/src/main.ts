@@ -6,6 +6,7 @@ import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
 import { confirmarVenta } from './services/ventas.js';
 import { kpis } from './services/dashboard.js';
+import { stockListado, stockDetalle } from './services/stock.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -125,6 +126,21 @@ app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
 
 // Dashboard: KPIs (requiere permiso de reportes → Admin / Encargado / Contador).
 app.get('/api/dashboard', { preHandler: requierePermiso('reportes.ver') }, async () => kpis());
+
+// Stock: listado + detalle con matriz talle×color (consulta: cualquier usuario).
+app.get('/api/stock', { preHandler: requiereAuth }, async (req) => {
+  const q = req.query as { sucursalId?: string; search?: string };
+  if (!q.sucursalId) return [];
+  return stockListado(q.sucursalId, q.search ?? '');
+});
+app.get('/api/stock/:productoId', { preHandler: requiereAuth }, async (req, reply) => {
+  const { productoId } = req.params as { productoId: string };
+  const q = req.query as { sucursalId?: string };
+  if (!q.sucursalId) return reply.code(400).send({ error: 'Falta sucursalId.' });
+  const detalle = await stockDetalle(productoId, q.sucursalId);
+  if (!detalle) return reply.code(404).send({ error: 'Producto no encontrado.' });
+  return detalle;
+});
 
 const PORT = Number(process.env.PORT ?? 3000);
 await app.listen({ port: PORT, host: '127.0.0.1' });
