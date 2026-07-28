@@ -13,8 +13,14 @@
  * inventario físico y alertas de reposición. No se declaran acá hasta existir —
  * una firma que no hace nada desinforma más de lo que documenta.
  */
+import type { RegistroOperacion, Tx } from '../../shared/operacion.js';
 import { stockDetalle, stockListado } from './consultas.js';
-import { ajustarStock, ingresarStock, transferirStock } from './movimientos.js';
+import {
+  ajustarStock, descontarPorVenta as descontarPorVentaImpl, ingresarStock, transferirStock,
+  type DescuentoPorVentaInput,
+} from './movimientos.js';
+
+export type { DescuentoPorVentaInput, LineaADescontar } from './movimientos.js';
 
 // --- Tipos del contrato ------------------------------------------------------
 
@@ -87,3 +93,28 @@ export const stock: StockApi = {
   ajustar: ajustarStock,
   transferir: transferirStock,
 };
+
+// --- Puerto transaccional (módulo a módulo) ----------------------------------
+
+/**
+ * Descuenta stock por una venta **dentro de la transacción del llamador**.
+ *
+ * Es la única operación del módulo que no abre su propia transacción, porque
+ * vender y descontar tienen que ser un solo commit: si el descuento falla, la
+ * venta no debe existir. Ventas la usa en lugar de escribir `stockPorSucursal` y
+ * `movimientoStock` por su cuenta.
+ *
+ * Stock sigue siendo el dueño de la escritura: acá se emite `StockDescontado` y se
+ * deja la auditoría del descuento.
+ *
+ * **No valida disponibilidad**: hoy una venta puede dejar el stock en negativo.
+ * Es el comportamiento previo, conservado a propósito; cambiarlo es una decisión
+ * de negocio (¿se bloquea la venta o se permite y se avisa?), no de refactor.
+ */
+export type DescontarPorVenta = (
+  tx: Tx,
+  reg: RegistroOperacion,
+  input: DescuentoPorVentaInput,
+) => Promise<void>;
+
+export const descontarPorVenta: DescontarPorVenta = descontarPorVentaImpl;

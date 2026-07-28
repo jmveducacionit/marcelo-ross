@@ -35,24 +35,33 @@ Las operaciones pendientes (`ingresarPorRemito`, `recibirTransferencia`,
 `tomarInventario`, `generarCodigoBarras`, alta de producto/variante) **no se
 declaran** hasta implementarse: una firma que no hace nada desinforma.
 
-Falta todavía proveer `StockPort` (disponibilidad/reservar/descontar/reingresar)
-a Ventas — ver "Fronteras pendientes".
+### Puerto transaccional (módulo a módulo)
+
+`descontarPorVenta(tx, reg, input)` — descuenta stock por una venta **dentro de la
+transacción del llamador**. Es la única operación que no abre su propia
+transacción: vender y descontar tienen que ser un solo commit, así que Ventas pasa
+su `tx` y su `reg`. Stock sigue siendo el dueño de la escritura — acá se tocan las
+tablas, se emite `StockDescontado` (con `esConsignacion`, que Proveedores necesita
+para el cargo de ADR-0006) y se deja la auditoría.
+
+**No valida disponibilidad**: hoy una venta puede dejar el stock en negativo. Es el
+comportamiento previo, conservado a propósito; cambiarlo es una decisión de negocio
+(¿se bloquea la venta o se permite y se avisa?), no de refactor.
 
 ## Fronteras pendientes
 
-El módulo ya está materializado, pero **el lint de imports todavía no existe**
-(paso 3 de ADR-0010), así que hay accesos directos a las tablas de stock desde
-afuera que la frontera no impide:
+El lint de imports todavía no existe (paso 3 de ADR-0010), así que quedan accesos
+directos a las tablas de stock que la frontera no impide. Los dos que quedan son
+**lecturas**, no comprometen consistencia:
 
-- `services/ventas.ts` **escribe** `stockPorSucursal` y `movimientoStock` al
-  confirmar una venta, en vez de pedírselo a este módulo. Es el cruce que más
-  importa: el descuento de stock por venta no pasa por acá.
-- `services/dashboard.ts` **lee** `stockPorSucursal` y `movimientoStock` para el
-  KPI de stock inmovilizado.
+- `services/dashboard.ts` lee `stockPorSucursal` y `movimientoStock` para el KPI de
+  stock inmovilizado. (De fondo, Dashboard debería proyectar eventos — Etapa 9.)
 - `services/catalogo.ts` lee variantes con su stock para la búsqueda de productos.
 
-Toda escritura de stock sí pasa por `operacionDeDominio`, así que la auditoría
-está garantizada (ADR-0010) aunque la frontera de módulo no lo esté.
+La escritura desde Ventas **ya se resolvió**: pasa por `descontarPorVenta`.
+
+Toda escritura de stock pasa por `operacionDeDominio`, así que la auditoría está
+garantizada (ADR-0010) aunque la frontera de módulo no lo esté todavía.
 
 ## Depende de
 

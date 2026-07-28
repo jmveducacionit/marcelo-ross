@@ -1,5 +1,5 @@
 import { nuevoUuid } from '@pos/core-domain';
-import { operacionDeDominio, type Tx } from '../../shared/operacion.js';
+import { operacionDeDominio, type RegistroOperacion, type Tx } from '../../shared/operacion.js';
 
 interface Ctx { usuarioId: string; sucursalId: string; }
 
@@ -14,6 +14,78 @@ async function setStock(tx: Tx, varianteId: string, sucursalId: string, cantidad
     update: { cantidad },
     create: { id: nuevoUuid(), varianteId, sucursalId, cantidad },
   });
+}
+
+export interface LineaADescontar { varianteId: string; cantidad: number }
+
+export interface DescuentoPorVentaInput {
+  ventaId: string;
+  sucursalId: string;
+  usuarioId: string;
+  ocurridoEn: Date;
+  lineas: LineaADescontar[];
+}
+
+/**
+ * Descuenta stock por una venta, **participando en la transacción de quien vende**.
+ *
+ * A diferencia del resto del módulo, no abre su propia `operacionDeDominio`: recibe
+ * la `tx` y el `reg` del llamador. Es deliberado — vender y descontar tienen que ser
+ * un solo commit. Si el descuento falla, la venta no debe existir; y si la venta
+ * falla, el stock no se toca. Modelarlo como evento posterior (Stock consumiendo
+ * `VentaConfirmada`) rompería esa atomicidad y abriría la ventana de vender stock
+ * que ya no está.
+ *
+ * Stock sigue siendo el dueño de la escritura: es este módulo el que toca las
+ * tablas, emite `StockDescontado` y deja la auditoría. Ventas pide, no escribe.
+ */
+export async function descontarPorVenta(tx: Tx, reg: RegistroOperacion, input: DescuentoPorVentaInput): Promise<void> {
+  const varianteIds = [...new Set(input.lineas.map((l) => l.varianteId))];
+
+  // Stock previo, solo para el `antes` de la auditoría. El descuento se hace con
+  // `decrement` (atómico), no escribiendo el valor leído.
+  const previos = await tx.stockPorSucursal.findMany({
+    where: { varianteId: { in: varianteIds }, sucursalId: input.sucursalId },
+    select: { varianteId: true, cantidad: true },
+  });
+  const previoDe = new Map(previos.map((s) => [s.varianteId, s.cantidad]));
+
+  // La consignación viaja en el evento: Proveedores la necesita para generar el
+  // cargo al proveedor cuando se vende mercadería no propia (ADR-0006).
+  const variantes = await tx.variante.findMany({
+    where: { id: { in: varianteIds } },
+    select: { id: true, esConsignacion: true },
+  });
+  const esConsignacionDe = new Map(variantes.map((v) => [v.id, v.esConsignacion]));
+
+  for (const l of input.lineas) {
+    await tx.stockPorSucursal.updateMany({
+      where: { varianteId: l.varianteId, sucursalId: input.sucursalId },
+      data: { cantidad: { decrement: l.cantidad } },
+    });
+    await tx.movimientoStock.create({
+      data: {
+        id: nuevoUuid(), varianteId: l.varianteId, sucursalId: input.sucursalId,
+        tipo: 'VENTA', cantidad: -l.cantidad, motivo: 'Venta confirmada',
+        referenciaId: input.ventaId, usuarioId: input.usuarioId, ocurridoEn: input.ocurridoEn,
+      },
+    });
+
+    reg.emitir({
+      tipo: 'StockDescontado',
+      meta: reg.meta({ ocurridoEn: input.ocurridoEn.toISOString() }),
+      payload: {
+        varianteId: l.varianteId, cantidad: l.cantidad, motivo: 'VENTA',
+        ventaId: input.ventaId, esConsignacion: esConsignacionDe.get(l.varianteId) ?? false,
+      },
+    });
+
+    const antes = previoDe.get(l.varianteId) ?? 0;
+    reg.auditar({
+      entidad: 'StockPorSucursal', entidadId: l.varianteId, accion: 'DESCUENTO_POR_VENTA',
+      antes: { cantidad: antes }, despues: { cantidad: antes - l.cantidad },
+    });
+  }
 }
 
 /** Ingreso de mercadería: suma unidades (motivo INGRESO). Emite StockIngresado. */

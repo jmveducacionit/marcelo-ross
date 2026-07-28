@@ -1,4 +1,5 @@
 import { nuevoUuid } from '@pos/core-domain';
+import { descontarPorVenta } from '../modules/stock/index.js';
 import { operacionDeDominio } from '../shared/operacion.js';
 
 export interface ConfirmarVentaInput {
@@ -72,20 +73,15 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
       },
     });
 
-    // 4. Descontar stock + ledger de movimientos.
-    for (const l of lineasData) {
-      await tx.stockPorSucursal.updateMany({
-        where: { varianteId: l.varianteId, sucursalId: input.sucursalId },
-        data: { cantidad: { decrement: l.cantidad } },
-      });
-      await tx.movimientoStock.create({
-        data: {
-          id: nuevoUuid(), varianteId: l.varianteId, sucursalId: input.sucursalId,
-          tipo: 'VENTA', cantidad: -l.cantidad, motivo: 'Venta confirmada',
-          referenciaId: ventaId, usuarioId: input.vendedorId, ocurridoEn,
-        },
-      });
-    }
+    // 4. Descontar stock: se lo pedimos a Stock, que es su dueño (ADR-0007).
+    //    Va en ESTA transacción, así vender y descontar son un solo commit.
+    await descontarPorVenta(tx, reg, {
+      ventaId,
+      sucursalId: input.sucursalId,
+      usuarioId: input.vendedorId,
+      ocurridoEn,
+      lineas: lineasData.map((l) => ({ varianteId: l.varianteId, cantidad: l.cantidad })),
+    });
 
     // 5. Evento de dominio -> Outbox (misma tx, lo escribe el envoltorio).
     reg.emitir({
