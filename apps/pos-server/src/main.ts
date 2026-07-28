@@ -35,8 +35,9 @@ app.post('/api/auth/login', async (req, reply) => {
     return reply.code(400).send({ error: 'Faltan usuario y contraseña.' });
   }
   try {
+    const userAgent = req.headers['user-agent'];
     const { token, usuario } = await login(body.usuario, body.password, {
-      ip: req.ip, userAgent: req.headers['user-agent'],
+      ip: req.ip, ...(userAgent ? { userAgent } : {}),
     });
     reply.setCookie(COOKIE_SESION, token, {
       httpOnly: true, sameSite: 'lax', path: '/', maxAge: TTL_SESION_SEG,
