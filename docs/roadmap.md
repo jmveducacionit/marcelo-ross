@@ -1,5 +1,13 @@
 # Roadmap de implementación
 
+> ⚠️ **Este documento describe el plan, no lo que se construyó.** Desde el commit
+> `88cc2c3` (2026-07-23) se optó por un **corte vertical de pantallas** para
+> validar el diseño con el dueño antes de completar módulos: se construyó primero
+> auth (Etapa 8), después dashboard (Etapa 9), stock (Etapa 2) y clientes
+> (Etapa 6). Todos los módulos quedan en estado *parcial*. El orden por etapas de
+> abajo sigue siendo el plan para **completarlos**, pero no describe el pasado.
+> Estado real por módulo: `CLAUDE.md` §2.
+
 > Implementación **incremental**. La arquitectura ya contempla los 8 módulos
 > (contratos + esquema conceptual); lo que se hace por etapas es la
 > implementación real y las migraciones. Ningún módulo se reescribe cuando llega
@@ -14,7 +22,7 @@
    real todavía no esté integrado (el comprobante queda `PENDIENTE`).
 3. **Dashboard último**: consume eventos de todos; sin ellos no tiene qué mostrar.
 
-## Etapa 0 — Andamiaje (ESTA FASE, Fase 1) ✅
+## Etapa 0 — Andamiaje (Fase 1) ✅ terminada
 
 Documentación + estructura + contratos + esquema conceptual. Sin código de app.
 

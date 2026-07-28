@@ -1,6 +1,11 @@
 # Módulo: Stock
 
-- **Estado**: pendiente
+- **Estado**: **parcial** — matriz talle×color con stock y precio, e ingreso,
+  ajuste y transferencia implementados. Faltan generación de códigos de barras,
+  inventario físico, recepción de transferencia y alertas de reposición.
+- **Dónde está el código**: `apps/pos-server/src/services/stock.ts` y
+  `stockMov.ts` — **no** en este directorio. El `index.ts` de al lado es un stub
+  de contrato de la Fase 1 (divergencia conocida respecto de ADR-0007).
 - **Etapa de implementación**: 2 (primero — Ventas no descuenta lo que no existe)
 
 ## Responsabilidad

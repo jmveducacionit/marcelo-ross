@@ -1,6 +1,11 @@
 # Módulo: Ventas
 
-- **Estado**: pendiente
+- **Estado**: **parcial** — ticket, medios de pago mixtos y venta con ajuste
+  (`PENDIENTE_AJUSTE`) implementados. Faltan motor de descuentos, devoluciones,
+  cambios y anulación.
+- **Dónde está el código**: `apps/pos-server/src/services/ventas.ts` — **no** en
+  este directorio. El `index.ts` de al lado es un stub de contrato de la Fase 1 y
+  no refleja lo implementado (divergencia conocida respecto de ADR-0007).
 - **Etapa de implementación**: 3 (ver [roadmap](../../../../../docs/roadmap.md))
 
 ## Responsabilidad

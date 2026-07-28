@@ -20,8 +20,18 @@ minorista de indumentaria masculina multimarca en Córdoba, Argentina.
 - **Usuarios**: 6 vendedores, 2 encargados, 1 administrador (dueño), 1 contador
   externo (solo lectura de reportes).
 
-**Etapa actual: Fase 1 — documentación y andamiaje. NO hay código de aplicación
-todavía.** Ver `docs/roadmap.md`.
+**Etapa actual: prototipo vertical funcionando (Fase B).** El andamiaje de Fase 1
+(documentación, contratos, esquema) está terminado y **sí hay código de
+aplicación**: auth + RBAC, pantalla de ventas, stock (matriz + movimientos),
+ficha de cliente y dashboard de KPIs. Ver `docs/prototipo.md` para correrlo y
+`docs/roadmap.md` para el plan (⚠️ el orden real de construcción difiere del
+plan; ver la nota al inicio de ese archivo).
+
+> **Dónde vive el código hoy:** la lógica real está en
+> `apps/pos-server/src/services/*.ts` (plano), **no** en
+> `apps/pos-server/src/modules/<modulo>/`. Los `modules/*/index.ts` son stubs de
+> contrato de la Fase 1 y **no reflejan lo implementado**. Es una divergencia
+> conocida respecto de ADR-0007, pendiente de resolver.
 
 ---
 
@@ -32,7 +42,7 @@ pero la arquitectura los contempla a todos desde el día 1.
 
 | # | Módulo | Responsabilidad | Estado |
 |---|--------|-----------------|--------|
-| 1 | **Ventas** | Ticket, carrito, descuentos, medios de pago mixtos, cambios/devoluciones, entrega diferida por ajustes de prenda | pendiente |
+| 1 | **Ventas** | Ticket, carrito, descuentos, medios de pago mixtos, cambios/devoluciones, entrega diferida por ajustes de prenda | parcial (ticket + pago mixto + ajuste ✅; sin descuentos ni devoluciones) |
 | 2 | **Stock** | Variantes talle/color con escalas configurables, ingresos por remito, ajustes, transferencias, inventario físico, consignación, alertas, códigos de barras propios | parcial (matriz + ingreso/ajuste/transferencia ✅) |
 | 3 | **Control de Caja** | Apertura/cierre por turno y caja, arqueo, movimientos de efectivo, diferencias, conciliación de medios electrónicos | pendiente |
 | 4 | **Empleados** | Usuarios, roles y permisos, comisiones, turnos, ranking | parcial (auth + RBAC ✅) |
@@ -195,7 +205,9 @@ pnpm db:migrate           # crear migración (prisma migrate dev)
 - ❌ **No introducir microservicios, Kubernetes, colas distribuidas ni CRDTs.**
   Es sobre-diseño para 2 locales / 45 tickets diarios.
 - ❌ **No manejar certificados ni WSFE de ARCA a mano**: eso lo hace el intermediario.
-- ❌ **No escribir código de aplicación en Fase 1.** Solo documentación y andamiaje.
+- ❌ **No dar por implementado un módulo porque exista su `modules/<x>/index.ts`.**
+  Esos archivos son stubs de contrato de la Fase 1. La implementación real está en
+  `apps/pos-server/src/services/`. Verificá en el código, no en el stub.
 - ❌ **No tratar mercadería en consignación como stock propio** hasta que se venda.
 - ❌ **No perder el rastro de auditoría** en ninguna operación de dinero o stock.
 

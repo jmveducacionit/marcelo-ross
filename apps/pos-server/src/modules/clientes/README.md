@@ -1,6 +1,10 @@
 # Módulo: Clientes
 
-- **Estado**: pendiente
+- **Estado**: **parcial** — ficha e historial de compras implementados. Faltan
+  talles habituales, crédito a favor, fidelización y datos fiscales para Factura A.
+- **Dónde está el código**: `apps/pos-server/src/services/clientes.ts` — **no** en
+  este directorio. El `index.ts` de al lado es un stub de contrato de la Fase 1
+  (divergencia conocida respecto de ADR-0007).
 - **Etapa de implementación**: 6 (contrato mínimo usado antes por Ventas/Facturación)
 
 ## Responsabilidad
