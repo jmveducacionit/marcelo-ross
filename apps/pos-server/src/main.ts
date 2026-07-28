@@ -6,9 +6,8 @@ import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
 import { confirmarVenta } from './services/ventas.js';
 import { kpis } from './services/dashboard.js';
-import { stockListado, stockDetalle } from './services/stock.js';
 import { clientesListado, clienteDetalle } from './services/clientes.js';
-import { ingresarStock, ajustarStock, transferirStock } from './services/stockMov.js';
+import { stock } from './modules/stock/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -140,13 +139,13 @@ app.get('/api/dashboard', { preHandler: requierePermiso('reportes.ver') }, async
 app.get('/api/stock', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { sucursalId?: string; search?: string };
   if (!q.sucursalId) return [];
-  return stockListado(q.sucursalId, q.search ?? '');
+  return stock.listado(q.sucursalId, q.search ?? '');
 });
 app.get('/api/stock/:productoId', { preHandler: requiereAuth }, async (req, reply) => {
   const { productoId } = req.params as { productoId: string };
   const q = req.query as { sucursalId?: string };
   if (!q.sucursalId) return reply.code(400).send({ error: 'Falta sucursalId.' });
-  const detalle = await stockDetalle(productoId, q.sucursalId);
+  const detalle = await stock.detalle(productoId, q.sucursalId);
   if (!detalle) return reply.code(404).send({ error: 'Producto no encontrado.' });
   return detalle;
 });
@@ -155,19 +154,19 @@ app.get('/api/stock/:productoId', { preHandler: requiereAuth }, async (req, repl
 app.post('/api/stock/ingreso', { preHandler: requierePermiso('stock.transferir') }, async (req, reply) => {
   const b = req.body as { varianteId?: string; sucursalId?: string; cantidad?: number };
   if (!b?.varianteId || !b?.sucursalId || b.cantidad == null) return reply.code(400).send({ error: 'Faltan datos.' });
-  try { return await ingresarStock(b.varianteId, b.sucursalId, b.cantidad, { usuarioId: req.usuario!.id, sucursalId: b.sucursalId }); }
+  try { return await stock.ingresar(b.varianteId, b.sucursalId, b.cantidad, { usuarioId: req.usuario!.id, sucursalId: b.sucursalId }); }
   catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
 });
 app.post('/api/stock/ajuste', { preHandler: requierePermiso('stock.transferir') }, async (req, reply) => {
   const b = req.body as { varianteId?: string; sucursalId?: string; nuevaCantidad?: number };
   if (!b?.varianteId || !b?.sucursalId || b.nuevaCantidad == null) return reply.code(400).send({ error: 'Faltan datos.' });
-  try { return await ajustarStock(b.varianteId, b.sucursalId, b.nuevaCantidad, { usuarioId: req.usuario!.id, sucursalId: b.sucursalId }); }
+  try { return await stock.ajustar(b.varianteId, b.sucursalId, b.nuevaCantidad, { usuarioId: req.usuario!.id, sucursalId: b.sucursalId }); }
   catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
 });
 app.post('/api/stock/transferencia', { preHandler: requierePermiso('stock.transferir') }, async (req, reply) => {
   const b = req.body as { varianteId?: string; origenId?: string; destinoId?: string; cantidad?: number };
   if (!b?.varianteId || !b?.origenId || !b?.destinoId || b.cantidad == null) return reply.code(400).send({ error: 'Faltan datos.' });
-  try { return await transferirStock(b.varianteId, b.origenId, b.destinoId, b.cantidad, { usuarioId: req.usuario!.id, sucursalId: b.origenId }); }
+  try { return await stock.transferir(b.varianteId, b.origenId, b.destinoId, b.cantidad, { usuarioId: req.usuario!.id, sucursalId: b.origenId }); }
   catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
 });
 

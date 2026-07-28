@@ -1,4 +1,4 @@
-import { prisma } from '../db.js';
+import { prisma } from '../../db.js';
 
 function estadoStock(total: number): 'ok' | 'bajo' | 'agotado' {
   if (total <= 0) return 'agotado';

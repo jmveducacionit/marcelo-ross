@@ -1,17 +1,89 @@
 /**
- * Módulo Stock — API pública (puerto). Fase 1: contrato/andamiaje.
- * Estado: pendiente. Implementación en Etapa 2 del roadmap.
- * Provee la implementación de StockPort (@pos/contracts) a Ventas.
+ * Módulo Stock — API pública (el "puerto"). ADR-0007 / ADR-0010.
+ *
+ * Este archivo es la ÚNICA superficie del módulo. `consultas.ts` y `movimientos.ts`
+ * son privados: nadie fuera de este directorio los importa.
+ *
+ * El stock se lleva SIEMPRE a nivel variante y por sucursal, nunca al producto
+ * padre (ADR-0002). Toda escritura pasa por `operacionDeDominio`, así que no puede
+ * commitear sin auditoría (ADR-0010).
+ *
+ * Operaciones todavía NO implementadas (Etapa 2 del roadmap): generación de códigos
+ * de barras, ingreso por remito, recepción de transferencia separada del envío,
+ * inventario físico y alertas de reposición. No se declaran acá hasta existir —
+ * una firma que no hace nada desinforma más de lo que documenta.
  */
+import { stockDetalle, stockListado } from './consultas.js';
+import { ajustarStock, ingresarStock, transferirStock } from './movimientos.js';
 
-export interface StockApi {
-  altaProducto(input: unknown): Promise<unknown>;
-  generarCodigoBarras(varianteId: unknown): Promise<string>;
-  ingresarPorRemito(input: unknown): Promise<unknown>;
-  ajustar(input: unknown): Promise<unknown>;
-  transferir(input: unknown): Promise<unknown>;
-  recibirTransferencia(input: unknown): Promise<unknown>;
-  tomarInventario(input: unknown): Promise<unknown>;
+// --- Tipos del contrato ------------------------------------------------------
+
+/** Contexto de autoría de una escritura de stock. Sale de la sesión, nunca del cliente. */
+export interface CtxStock {
+  usuarioId: string;
+  sucursalId: string;
 }
 
-export {};
+export type EstadoStock = 'ok' | 'bajo' | 'agotado';
+
+/** Producto padre con su stock agregado en una sucursal (vista de listado). */
+export interface ProductoConStock {
+  id: string;
+  nombre: string;
+  marca: string;
+  categoria: string;
+  codigo: string;
+  variantes: number;
+  totalStock: number;
+  esConsignacion: boolean;
+  estado: EstadoStock;
+}
+
+export interface TalleDeEscala { id: string; etiqueta: string; orden: number }
+export interface ColorDeProducto { id: string; nombre: string; hex: string | null }
+export interface CeldaMatriz { stock: number; varianteId: string; codigoBarras: string }
+
+/** Matriz talle × color de un producto en una sucursal. */
+export interface DetalleDeProducto {
+  producto: {
+    id: string;
+    nombre: string;
+    marca: string;
+    categoria: string;
+    totalStock: number;
+    totalVariantes: number;
+    esConsignacion: boolean;
+    estado: EstadoStock;
+  };
+  talles: TalleDeEscala[];
+  colores: ColorDeProducto[];
+  /** celdas[colorId][talleId] — `null` si esa combinación no existe como variante. */
+  celdas: Record<string, Record<string, CeldaMatriz | null>>;
+  totalPorTalle: Record<string, number>;
+  totalPorColor: Record<string, number>;
+  total: number;
+}
+
+/** API pública del módulo. */
+export interface StockApi {
+  /** Productos con su stock total en la sucursal. `search` vacío = listado general. */
+  listado(sucursalId: string, search: string): Promise<ProductoConStock[]>;
+  /** Matriz talle×color de un producto. `null` si el producto no existe. */
+  detalle(productoId: string, sucursalId: string): Promise<DetalleDeProducto | null>;
+  /** Ingreso de mercadería: suma unidades. Emite `StockIngresado`. */
+  ingresar(varianteId: string, sucursalId: string, cantidad: number, ctx: CtxStock): Promise<{ nueva: number }>;
+  /** Ajuste de inventario: fija el stock al valor contado. Emite `StockIngresado`/`StockDescontado`. */
+  ajustar(varianteId: string, sucursalId: string, nuevaCantidad: number, ctx: CtxStock): Promise<{ nueva: number }>;
+  /** Transferencia entre sucursales. Emite `TransferenciaEnviada` y `TransferenciaRecibida`. */
+  transferir(varianteId: string, origenId: string, destinoId: string, cantidad: number, ctx: CtxStock): Promise<{ enOrigen: number }>;
+}
+
+// --- Implementación ----------------------------------------------------------
+
+export const stock: StockApi = {
+  listado: stockListado,
+  detalle: stockDetalle,
+  ingresar: ingresarStock,
+  ajustar: ajustarStock,
+  transferir: transferirStock,
+};

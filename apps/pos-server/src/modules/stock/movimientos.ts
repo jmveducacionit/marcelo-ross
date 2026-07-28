@@ -1,5 +1,5 @@
 import { nuevoUuid } from '@pos/core-domain';
-import { operacionDeDominio, type Tx } from '../shared/operacion.js';
+import { operacionDeDominio, type Tx } from '../../shared/operacion.js';
 
 interface Ctx { usuarioId: string; sucursalId: string; }
 
