@@ -1,6 +1,11 @@
 /**
  * Bus de eventos + Outbox + Auditoría (versión mínima para el prototipo).
  *
+ * ⚠️ Las funciones de este archivo son primitivas de bajo nivel. **No las llames
+ * directo desde un servicio**: usá `operacionDeDominio()` de `./operacion.ts`, que
+ * las orquesta y garantiza que ninguna operación de dinero o stock pueda commitear
+ * sin auditoría (ADR-0010).
+ *
  * Diseño (ADR-0001 / ADR-0008): en la MISMA transacción de negocio se escribe:
  *  - la fila de Outbox (= el evento de dominio, para el bus y la sincronización)
  *  - la fila de RegistroAuditoria (quién, cuándo, qué, caja, sucursal)

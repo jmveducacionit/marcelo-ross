@@ -149,11 +149,15 @@ Detalle completo en [ADR-0001](adr/0001-offline-first-y-sincronizacion.md).
 | [0007](adr/0007-monolito-modular.md) | Monolito modular vs. microservicios/packages | Aceptado |
 | [0008](adr/0008-auditoria-transversal-y-uuidv7.md) | Auditoría transversal + IDs UUIDv7 | Aceptado |
 | [0009](adr/0009-autenticacion-y-autorizacion.md) | Autenticación (Argon2id + sesión revocable) y RBAC por roles | Aceptado |
+| [0010](adr/0010-enforcement-de-fronteras-y-auditoria.md) | Enforcement de fronteras de módulo y auditoría obligatoria | Aceptado |
 
 ## 6. Preocupaciones transversales (`shared/`)
 
 - **Auditoría**: registro append-only de toda operación de dinero/stock
   (quién, cuándo, qué cambió, caja, sucursal). Ver [ADR-0008](adr/0008-auditoria-transversal-y-uuidv7.md).
+  **Se accede por `shared/operacion.ts`** (`operacionDeDominio`), que no deja
+  commitear una operación sin rastro; las primitivas de `shared/bus.ts` no se
+  llaman directo desde un servicio. Ver [ADR-0010](adr/0010-enforcement-de-fronteras-y-auditoria.md).
 - **Dinero** (`Money`): tipo y utilidades. Enteros en centavos. Ver [ADR-0003](adr/0003-representacion-monetaria-y-versionado-precios.md).
 - **IDs**: generador UUIDv7.
 - **Bus de eventos + outbox**: publicación y consumo idempotente.

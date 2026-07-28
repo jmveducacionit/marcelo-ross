@@ -1,13 +1,7 @@
-import { prisma } from '../db.js';
 import { nuevoUuid } from '@pos/core-domain';
-import { encolarEvento, registrarAuditoria, publicarPostCommit } from '../shared/bus.js';
+import { operacionDeDominio, type Tx } from '../shared/operacion.js';
 
 interface Ctx { usuarioId: string; sucursalId: string; }
-type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
-function meta(ctx: Ctx) {
-  return { eventId: nuevoUuid(), ocurridoEn: new Date().toISOString(), sucursalId: ctx.sucursalId, usuarioId: ctx.usuarioId };
-}
 
 async function stockActual(tx: Tx, varianteId: string, sucursalId: string): Promise<number> {
   const s = await tx.stockPorSucursal.findUnique({ where: { varianteId_sucursalId: { varianteId, sucursalId } } });
@@ -25,35 +19,40 @@ async function setStock(tx: Tx, varianteId: string, sucursalId: string, cantidad
 /** Ingreso de mercadería: suma unidades (motivo INGRESO). Emite StockIngresado. */
 export async function ingresarStock(varianteId: string, sucursalId: string, cantidad: number, ctx: Ctx) {
   if (!Number.isInteger(cantidad) || cantidad <= 0) throw new Error('La cantidad a ingresar debe ser un entero positivo.');
-  const ev = await prisma.$transaction(async (tx) => {
+  return operacionDeDominio('ingresarStock', ctx, async (tx, reg) => {
     const actual = await stockActual(tx, varianteId, sucursalId);
     await setStock(tx, varianteId, sucursalId, actual + cantidad);
     await tx.movimientoStock.create({ data: { id: nuevoUuid(), varianteId, sucursalId, tipo: 'INGRESO', cantidad, motivo: 'Ingreso de mercadería', usuarioId: ctx.usuarioId, ocurridoEn: new Date() } });
-    const evento = { tipo: 'StockIngresado' as const, meta: meta(ctx), payload: { varianteId, cantidad, motivo: 'INGRESO' } };
-    await encolarEvento(tx as never, evento as never);
-    await registrarAuditoria(tx as never, ctx, { entidad: 'StockPorSucursal', entidadId: varianteId, accion: 'INGRESO_STOCK', antes: { cantidad: actual }, despues: { cantidad: actual + cantidad } });
-    return { evento, nueva: actual + cantidad };
+
+    reg.emitir({ tipo: 'StockIngresado', meta: reg.meta(), payload: { varianteId, cantidad, motivo: 'INGRESO' } });
+    reg.auditar({ entidad: 'StockPorSucursal', entidadId: varianteId, accion: 'INGRESO_STOCK', antes: { cantidad: actual }, despues: { cantidad: actual + cantidad } });
+
+    return { nueva: actual + cantidad };
   });
-  publicarPostCommit(ev.evento as never);
-  return { nueva: ev.nueva };
 }
 
 /** Ajuste: fija el stock a un valor contado. Emite Stock(In/De)gresado según el signo del delta. */
 export async function ajustarStock(varianteId: string, sucursalId: string, nuevaCantidad: number, ctx: Ctx) {
   if (!Number.isInteger(nuevaCantidad) || nuevaCantidad < 0) throw new Error('La cantidad ajustada debe ser un entero ≥ 0.');
-  const ev = await prisma.$transaction(async (tx) => {
+  return operacionDeDominio('ajustarStock', ctx, async (tx, reg) => {
     const actual = await stockActual(tx, varianteId, sucursalId);
     const delta = nuevaCantidad - actual;
-    if (delta === 0) return null;
+    if (delta === 0) {
+      reg.sinCambios('el conteo coincide con el stock registrado');
+      return { nueva: nuevaCantidad };
+    }
     await setStock(tx, varianteId, sucursalId, nuevaCantidad);
     await tx.movimientoStock.create({ data: { id: nuevoUuid(), varianteId, sucursalId, tipo: 'AJUSTE', cantidad: delta, motivo: 'Ajuste manual de inventario', usuarioId: ctx.usuarioId, ocurridoEn: new Date() } });
-    const evento = { tipo: delta > 0 ? 'StockIngresado' as const : 'StockDescontado' as const, meta: meta(ctx), payload: { varianteId, cantidad: Math.abs(delta), motivo: 'AJUSTE' } };
-    await encolarEvento(tx as never, evento as never);
-    await registrarAuditoria(tx as never, ctx, { entidad: 'StockPorSucursal', entidadId: varianteId, accion: 'AJUSTE_STOCK', antes: { cantidad: actual }, despues: { cantidad: nuevaCantidad } });
-    return { evento, nueva: nuevaCantidad };
+
+    reg.emitir({
+      tipo: delta > 0 ? 'StockIngresado' : 'StockDescontado',
+      meta: reg.meta(),
+      payload: { varianteId, cantidad: Math.abs(delta), motivo: 'AJUSTE' },
+    });
+    reg.auditar({ entidad: 'StockPorSucursal', entidadId: varianteId, accion: 'AJUSTE_STOCK', antes: { cantidad: actual }, despues: { cantidad: nuevaCantidad } });
+
+    return { nueva: nuevaCantidad };
   });
-  if (ev) publicarPostCommit(ev.evento as never);
-  return { nueva: nuevaCantidad };
 }
 
 /**
@@ -63,7 +62,7 @@ export async function ajustarStock(varianteId: string, sucursalId: string, nueva
 export async function transferirStock(varianteId: string, sucursalOrigenId: string, sucursalDestinoId: string, cantidad: number, ctx: Ctx) {
   if (!Number.isInteger(cantidad) || cantidad <= 0) throw new Error('La cantidad a transferir debe ser un entero positivo.');
   if (sucursalOrigenId === sucursalDestinoId) throw new Error('El origen y el destino deben ser distintos.');
-  const res = await prisma.$transaction(async (tx) => {
+  return operacionDeDominio('transferirStock', ctx, async (tx, reg) => {
     const enOrigen = await stockActual(tx, varianteId, sucursalOrigenId);
     if (enOrigen < cantidad) throw new Error(`Stock insuficiente en origen (hay ${enOrigen}).`);
     const enDestino = await stockActual(tx, varianteId, sucursalDestinoId);
@@ -75,14 +74,10 @@ export async function transferirStock(varianteId: string, sucursalOrigenId: stri
     await tx.movimientoStock.create({ data: { id: nuevoUuid(), varianteId, sucursalId: sucursalOrigenId, tipo: 'TRANSFERENCIA_SALIDA', cantidad: -cantidad, motivo: 'Transferencia', referenciaId: transferenciaId, usuarioId: ctx.usuarioId, ocurridoEn: new Date() } });
     await tx.movimientoStock.create({ data: { id: nuevoUuid(), varianteId, sucursalId: sucursalDestinoId, tipo: 'TRANSFERENCIA_ENTRADA', cantidad, motivo: 'Transferencia', referenciaId: transferenciaId, usuarioId: ctx.usuarioId, ocurridoEn: new Date() } });
 
-    const evEnviada = { tipo: 'TransferenciaEnviada' as const, meta: meta(ctx), payload: { transferenciaId, sucursalDestinoId, lineas: [{ varianteId, cantidad }] } };
-    const evRecibida = { tipo: 'TransferenciaRecibida' as const, meta: { ...meta(ctx), sucursalId: sucursalDestinoId }, payload: { transferenciaId, lineas: [{ varianteId, cantidad }] } };
-    await encolarEvento(tx as never, evEnviada as never);
-    await encolarEvento(tx as never, evRecibida as never);
-    await registrarAuditoria(tx as never, ctx, { entidad: 'Transferencia', entidadId: transferenciaId, accion: 'TRANSFERENCIA_STOCK', despues: { varianteId, cantidad, origen: sucursalOrigenId, destino: sucursalDestinoId } });
-    return { evEnviada, evRecibida, enOrigen: enOrigen - cantidad };
+    reg.emitir({ tipo: 'TransferenciaEnviada', meta: reg.meta(), payload: { transferenciaId, sucursalDestinoId, lineas: [{ varianteId, cantidad }] } });
+    reg.emitir({ tipo: 'TransferenciaRecibida', meta: reg.meta({ sucursalId: sucursalDestinoId }), payload: { transferenciaId, lineas: [{ varianteId, cantidad }] } });
+    reg.auditar({ entidad: 'Transferencia', entidadId: transferenciaId, accion: 'TRANSFERENCIA_STOCK', despues: { varianteId, cantidad, origen: sucursalOrigenId, destino: sucursalDestinoId } });
+
+    return { enOrigen: enOrigen - cantidad };
   });
-  publicarPostCommit(res.evEnviada as never);
-  publicarPostCommit(res.evRecibida as never);
-  return { enOrigen: res.enOrigen };
 }

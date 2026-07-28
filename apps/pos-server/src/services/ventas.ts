@@ -1,6 +1,5 @@
-import { prisma } from '../db.js';
 import { nuevoUuid } from '@pos/core-domain';
-import { encolarEvento, registrarAuditoria, publicarPostCommit } from '../shared/bus.js';
+import { operacionDeDominio } from '../shared/operacion.js';
 
 export interface ConfirmarVentaInput {
   sucursalId: string;
@@ -16,14 +15,15 @@ export interface ConfirmarVentaInput {
  *  - snapshot del precio vigente en cada línea (ADR-0003)
  *  - descuenta stock a nivel variante + ledger de movimiento
  *  - encola el evento VentaConfirmada en el Outbox y deja auditoría (misma tx)
- * Devuelve un resumen. Emite el evento a los consumidores in-process post-commit.
+ * El envoltorio `operacionDeDominio` garantiza que no pueda commitear sin auditoría
+ * y publica el evento a los consumidores in-process después del commit.
  */
 export async function confirmarVenta(input: ConfirmarVentaInput) {
   const ventaId = nuevoUuid();
-  const eventId = nuevoUuid();
   const ocurridoEn = new Date();
+  const ctx = { usuarioId: input.vendedorId, sucursalId: input.sucursalId, cajaId: input.cajaId };
 
-  const resultado = await prisma.$transaction(async (tx) => {
+  return operacionDeDominio('confirmarVenta', ctx, async (tx, reg) => {
     // 1. Snapshot de precios vigentes y armado de líneas.
     const lineasData: Array<{
       id: string; varianteId: string; cantidad: number;
@@ -87,13 +87,10 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
       });
     }
 
-    // 5. Evento de dominio -> Outbox (misma tx).
-    const evento = {
-      tipo: 'VentaConfirmada' as const,
-      meta: {
-        eventId, ocurridoEn: ocurridoEn.toISOString(),
-        sucursalId: input.sucursalId, cajaId: input.cajaId, usuarioId: input.vendedorId,
-      },
+    // 5. Evento de dominio -> Outbox (misma tx, lo escribe el envoltorio).
+    reg.emitir({
+      tipo: 'VentaConfirmada',
+      meta: reg.meta({ ocurridoEn: ocurridoEn.toISOString() }),
       payload: {
         ventaId,
         clienteId: input.clienteId ?? undefined,
@@ -104,20 +101,18 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
         pagos: pagos.map((p) => ({ medio: p.medio, monto: p.monto.toString() })),
         total: total.toString(),
       },
+    });
+
+    // 6. Auditoría (misma tx, obligatoria: sin esto la operación se revierte).
+    reg.auditar({
+      entidad: 'Venta', entidadId: ventaId, accion: 'CONFIRMAR_VENTA',
+      despues: { total: total.toString(), lineas: lineasData.length },
+    });
+
+    return {
+      ventaId,
+      total: total.toString(),
+      estadoEntrega: algunAjuste ? 'PENDIENTE_AJUSTE' : 'ENTREGADA',
     };
-    await encolarEvento(tx as any, evento as any);
-
-    // 6. Auditoría (misma tx).
-    await registrarAuditoria(
-      tx as any,
-      { usuarioId: input.vendedorId, sucursalId: input.sucursalId, cajaId: input.cajaId },
-      { entidad: 'Venta', entidadId: ventaId, accion: 'CONFIRMAR_VENTA', despues: { total: total.toString(), lineas: lineasData.length } },
-    );
-
-    return { ventaId, total: total.toString(), estadoEntrega: algunAjuste ? 'PENDIENTE_AJUSTE' : 'ENTREGADA', evento };
   });
-
-  // Post-commit: notificar consumidores in-process.
-  publicarPostCommit(resultado.evento as any);
-  return { ventaId: resultado.ventaId, total: resultado.total, estadoEntrega: resultado.estadoEntrega };
 }
