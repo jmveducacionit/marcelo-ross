@@ -31,3 +31,6 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Artefactos de build del instalable
+build/

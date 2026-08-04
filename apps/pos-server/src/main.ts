@@ -1,6 +1,10 @@
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import fastifyStatic from '@fastify/static';
 import { prisma } from './db.js';
 import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
@@ -170,6 +174,29 @@ app.post('/api/stock/transferencia', { preHandler: requierePermiso('stock.transf
   catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
 });
 
+// --- Front estático (solo en la instalación empaquetada) --------------------
+// En desarrollo el front lo sirve Vite en :5173 y llega acá por su proxy. En la
+// instalación no hay Vite: un único proceso sirve la API y la SPA en el mismo
+// puerto, que es lo que permite dejar un solo servicio corriendo en el mini-PC.
+// Si el directorio no existe (caso desarrollo), no se registra nada.
+const WEB_DIR = process.env.POS_WEB_DIR
+  ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web');
+
+if (existsSync(WEB_DIR)) {
+  await app.register(fastifyStatic, { root: WEB_DIR });
+  // Fallback de SPA: cualquier ruta que no sea /api/ devuelve index.html para que
+  // el router del front resuelva. /api/ inexistente sigue siendo 404 de verdad.
+  app.setNotFoundHandler((req, reply) => {
+    if (req.raw.url?.startsWith('/api/')) return reply.code(404).send({ error: 'Ruta no encontrada.' });
+    return reply.sendFile('index.html');
+  });
+  console.log(`[web] sirviendo el front desde ${WEB_DIR}`);
+}
+
 const PORT = Number(process.env.PORT ?? 3000);
-await app.listen({ port: PORT, host: '127.0.0.1' });
+// 127.0.0.1 por defecto: la demo corre en una sola máquina. Para varias cajas en
+// la LAN de la sucursal se levanta con POS_HOST=0.0.0.0.
+const HOST = process.env.POS_HOST ?? '127.0.0.1';
+await app.listen({ port: PORT, host: HOST });
+console.log(`[pos] Sucursal lista en http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
 console.log(`[pos-server] escuchando en http://127.0.0.1:${PORT}`);

@@ -11,6 +11,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "build:web": "pnpm --filter @pos/pos-web build",
+    "build:app": "pnpm build:web && node scripts/build-app.mjs",
     "typecheck": "tsc -b",
     "dev:db": "node scripts/dev-db.mjs",
     "dev:server": "pnpm --filter @pos/pos-server dev",
@@ -34,6 +36,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "esbuild": "^0.28.1",
     "prisma": "^6.2.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
