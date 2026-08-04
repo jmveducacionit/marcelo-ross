@@ -11,8 +11,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:web": "pnpm --filter @pos/pos-web build",
-    "build:app": "pnpm build:web && node scripts/build-app.mjs",
+    "build:app": "node scripts/build-app.mjs",
     "typecheck": "tsc -b",
     "dev:db": "node scripts/dev-db.mjs",
     "dev:server": "pnpm --filter @pos/pos-server dev",

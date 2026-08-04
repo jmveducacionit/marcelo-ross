@@ -15,6 +15,7 @@
  * de código propia: Prisma y Argon2.
  */
 import { build } from 'esbuild';
+import { execFileSync } from 'node:child_process';
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -40,6 +41,19 @@ await paso('limpiar build/app', async () => {
   await mkdir(salida, { recursive: true });
 });
 
+await paso('compilar el front (vite build)', async () => {
+  // Se invoca Vite directamente en vez de `pnpm --filter ... build`: pnpm no
+  // siempre está en el PATH en esta máquina (ver docs/prototipo.md), y un build
+  // que depende del gestor de paquetes se rompe justo cuando hay que empaquetar.
+  const web = join(raiz, 'apps/pos-web');
+  // `vite/bin/vite.js` no está en los `exports` del paquete, así que se resuelve
+  // el package.json y se arma la ruta del bin a mano.
+  const vitePkg = createRequire(join(web, 'package.json')).resolve('vite/package.json');
+  const viteBin = join(dirname(vitePkg), 'bin', 'vite.js');
+  if (!existsSync(viteBin)) throw new Error(`No encontré el binario de Vite en ${viteBin}.`);
+  execFileSync(process.execPath, [viteBin, 'build'], { cwd: web, stdio: 'pipe' });
+});
+
 await paso('bundlear el servidor', async () => {
   await build({
     entryPoints: [join(raiz, 'apps/pos-server/src/main.ts')],
@@ -53,6 +67,23 @@ await paso('bundlear el servidor', async () => {
     minify: false, // legible: si la demo falla en la sucursal, el stack trace sirve
     banner: {
       // Prisma y algunas deps esperan `require` disponible en el scope ESM.
+      js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
+    },
+  });
+});
+
+await paso('bundlear el seed', async () => {
+  // La instalación siembra con `POS_PERFIL=zona-oeste node seed.mjs`. Se bundlea
+  // aparte del servidor porque en el paquete no hay tsx para correr el .ts.
+  await build({
+    entryPoints: [join(raiz, 'prisma/seed.ts')],
+    outfile: join(salida, 'seed.mjs'),
+    bundle: true,
+    platform: 'node',
+    target: 'node20',
+    format: 'esm',
+    external: EXTERNOS,
+    banner: {
       js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);",
     },
   });

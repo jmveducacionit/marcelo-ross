@@ -38,6 +38,68 @@ const entre = (min: number, max: number) => min + Math.floor(rnd() * (max - min 
 let barcodeSeq = 0;
 const nuevoCodigoBarras = () => String(7790000000000 + ++barcodeSeq);
 
+// --- Perfiles de instalación ------------------------------------------------
+// El catálogo (marcas, escalas, productos, precios) es el MISMO en todos los
+// perfiles: lo que cambia es qué sucursales existen y quién opera. Por eso hay
+// un solo seed parametrizado y no uno por destino — dos seeds con el mismo
+// catálogo divergen a la primera semana.
+interface Perfil {
+  descripcion: string;
+  sucursales: Array<{ nombre: string; direccion: string; esDepositoCentral: boolean; cajas: string[]; numeroArca: number }>;
+  /** Usuarios que se crean. `suc` es el índice en `sucursales`. */
+  usuarios: Array<{ usuario: string; nombre: string; rol: string; pass: string; suc: number }>;
+  dominioEmail: string;
+  /** Ventas de ejemplo a generar en la sucursal principal. 0 = ninguna. */
+  ventasDemo: number;
+}
+
+const PERFILES: Record<string, Perfil> = {
+  /** Desarrollo: las 2 sucursales de Marcelo Ross Hombre. */
+  desarrollo: {
+    descripcion: 'Marcelo Ross Hombre — Centro + Shopping',
+    sucursales: [
+      { nombre: 'Local Centro', direccion: 'San Martín, Córdoba', esDepositoCentral: true, cajas: ['Centro Caja 1', 'Centro Caja 2'], numeroArca: 1 },
+      { nombre: 'Local Shopping', direccion: 'Nuevocentro', esDepositoCentral: false, cajas: ['Shopping Caja 1'], numeroArca: 2 },
+    ],
+    usuarios: [
+      { usuario: 'admin', nombre: 'Marcelo (Admin)', rol: 'ADMIN', pass: 'Admin.2026', suc: 0 },
+      { usuario: 'encargado', nombre: 'Encargada Centro', rol: 'ENCARGADO', pass: 'Encargado.2026', suc: 0 },
+      { usuario: 'cajero', nombre: 'Cajero Centro', rol: 'CAJERO', pass: 'Cajero.2026', suc: 0 },
+      { usuario: 'vendedor', nombre: 'Vendedor Centro', rol: 'VENDEDOR', pass: 'Vendedor.2026', suc: 0 },
+    ],
+    dominioEmail: 'marceloross.local',
+    ventasDemo: 8,
+  },
+
+  /**
+   * Franquicia Zona Oeste: UNA sucursal, aislada (sin sincronización con las
+   * otras). Entidad fiscal propia — su punto de venta ante ARCA es el 1, no
+   * hereda la numeración de la casa central — pero arranca con el catálogo,
+   * las escalas de talle y las marcas de Marcelo Ross.
+   */
+  'zona-oeste': {
+    descripcion: 'Franquicia Zona Oeste — sucursal única',
+    sucursales: [
+      // Es su propio depósito: no hay otra sucursal de la cual recibir.
+      { nombre: 'Sucursal Zona Oeste', direccion: 'Av. Colón 4500, Córdoba', esDepositoCentral: true, cajas: ['Caja 1', 'Caja 2'], numeroArca: 1 },
+    ],
+    usuarios: [
+      { usuario: 'admin', nombre: 'Administrador Zona Oeste', rol: 'ADMIN', pass: 'Admin.2026', suc: 0 },
+      { usuario: 'encargado', nombre: 'Encargado Zona Oeste', rol: 'ENCARGADO', pass: 'Encargado.2026', suc: 0 },
+      { usuario: 'cajero', nombre: 'Cajero Zona Oeste', rol: 'CAJERO', pass: 'Cajero.2026', suc: 0 },
+      { usuario: 'vendedor', nombre: 'Vendedor Zona Oeste', rol: 'VENDEDOR', pass: 'Vendedor.2026', suc: 0 },
+    ],
+    dominioEmail: 'zonaoeste.local',
+    ventasDemo: 12,
+  },
+};
+
+const NOMBRE_PERFIL = process.env.POS_PERFIL ?? 'desarrollo';
+const perfil = PERFILES[NOMBRE_PERFIL];
+if (!perfil) {
+  throw new Error(`Perfil de seed desconocido: "${NOMBRE_PERFIL}". Disponibles: ${Object.keys(PERFILES).join(', ')}.`);
+}
+
 async function limpiar() {
   // Orden inverso a las dependencias (para re-ejecutar el seed).
   await prisma.$transaction([
@@ -72,36 +134,28 @@ async function limpiar() {
 async function main() {
   await limpiar();
 
+  console.log(`Perfil: ${NOMBRE_PERFIL} — ${perfil.descripcion}`);
+
   // --- Sucursales y cajas -----------------------------------------------------
-  const centroId = nuevoUuid();
-  const shoppingId = nuevoUuid();
+  const sucursales = perfil.sucursales.map(() => nuevoUuid());
+  const sucursalPrincipalId = sucursales[0]!;
   await prisma.sucursal.createMany({
-    data: [
-      { id: centroId, nombre: 'Local Centro', direccion: 'San Martín, Córdoba', esDepositoCentral: true },
-      { id: shoppingId, nombre: 'Local Shopping', direccion: 'Nuevocentro', esDepositoCentral: false },
-    ],
+    data: perfil.sucursales.map((s, i) => ({
+      id: sucursales[i]!, nombre: s.nombre, direccion: s.direccion, esDepositoCentral: s.esDepositoCentral,
+    })),
   });
-  const sucursales = [centroId, shoppingId];
   await prisma.caja.createMany({
-    data: [
-      { id: nuevoUuid(), sucursalId: centroId, nombre: 'Centro Caja 1' },
-      { id: nuevoUuid(), sucursalId: centroId, nombre: 'Centro Caja 2' },
-      { id: nuevoUuid(), sucursalId: shoppingId, nombre: 'Shopping Caja 1' },
-    ],
+    data: perfil.sucursales.flatMap((s, i) =>
+      s.cajas.map((nombre) => ({ id: nuevoUuid(), sucursalId: sucursales[i]!, nombre })),
+    ),
   });
 
   // --- Usuarios (uno por rol) con contraseña hasheada (Argon2id) --------------
   // Credenciales de DEMO — cambiar en producción. Documentadas en docs/prototipo.md.
-  const usuariosDef = [
-    { usuario: 'admin', nombre: 'Marcelo (Admin)', rol: 'ADMIN', pass: 'Admin.2026', suc: centroId },
-    { usuario: 'encargado', nombre: 'Encargada Centro', rol: 'ENCARGADO', pass: 'Encargado.2026', suc: centroId },
-    { usuario: 'cajero', nombre: 'Cajero Centro', rol: 'CAJERO', pass: 'Cajero.2026', suc: centroId },
-    { usuario: 'vendedor', nombre: 'Vendedor Centro', rol: 'VENDEDOR', pass: 'Vendedor.2026', suc: centroId },
-  ];
   const usuariosData = await Promise.all(
-    usuariosDef.map(async (u) => ({
-      id: nuevoUuid(), nombre: u.nombre, usuario: u.usuario, email: `${u.usuario}@marceloross.local`,
-      hashPassword: await argonHash(u.pass), rol: u.rol, sucursalIdPrincipal: u.suc, activo: true,
+    perfil.usuarios.map(async (u) => ({
+      id: nuevoUuid(), nombre: u.nombre, usuario: u.usuario, email: `${u.usuario}@${perfil.dominioEmail}`,
+      hashPassword: await argonHash(u.pass), rol: u.rol, sucursalIdPrincipal: sucursales[u.suc]!, activo: true,
     })),
   );
   await prisma.usuario.createMany({ data: usuariosData });
@@ -280,28 +334,27 @@ async function main() {
   await prisma.talleHabitual.createMany({ data: tallesHabitualesData });
 
   // --- Puntos de venta (uno por sucursal) -------------------------------------
-  const ptoVentaCentroId = nuevoUuid();
-  const ptoVentaShoppingId = nuevoUuid();
+  const puntosVenta = perfil.sucursales.map(() => nuevoUuid());
   await prisma.puntoVenta.createMany({
-    data: [
-      { id: ptoVentaCentroId, sucursalId: centroId, numeroArca: 1 },
-      { id: ptoVentaShoppingId, sucursalId: shoppingId, numeroArca: 2 },
-    ],
+    data: perfil.sucursales.map((s, i) => ({
+      id: puntosVenta[i]!, sucursalId: sucursales[i]!, numeroArca: s.numeroArca,
+    })),
   });
+  const ptoVentaPrincipalId = puntosVenta[0]!;
 
   // --- Ventas de ejemplo (pagos mixtos, movimientos, comprobante PENDIENTE) ----
-  const cajasCentro = await prisma.caja.findMany({ where: { sucursalId: centroId } });
+  const cajasPrincipal = await prisma.caja.findMany({ where: { sucursalId: sucursalPrincipalId } });
   const clientes = await prisma.cliente.findMany();
-  const disponiblesCentro = variantesParaVenta.filter((x) => x.sucursalId === centroId);
+  const disponiblesPrincipal = variantesParaVenta.filter((x) => x.sucursalId === sucursalPrincipalId);
   const IVA = 21;
   let comprobNumero = 0;
 
-  for (let v = 0; v < 8; v++) {
-    const sucursalId = centroId;
-    const caja = pick(cajasCentro);
+  for (let v = 0; v < perfil.ventasDemo; v++) {
+    const sucursalId = sucursalPrincipalId;
+    const caja = pick(cajasPrincipal);
     const cliente = rnd() > 0.4 ? pick(clientes) : null;
     const cant = entre(1, 3);
-    const elegidas = [...disponiblesCentro].sort(() => rnd() - 0.5).slice(0, cant);
+    const elegidas = [...disponiblesPrincipal].sort(() => rnd() - 0.5).slice(0, cant);
 
     const ventaId = nuevoUuid();
     const lineas: any[] = [];
@@ -350,7 +403,7 @@ async function main() {
     await prisma.comprobante.create({
       data: {
         id: comprobanteId, tipo: esFacturaA ? 'FACTURA_A' : 'FACTURA_B',
-        puntoVentaId: ptoVentaCentroId, numero: ++comprobNumero, ventaId,
+        puntoVentaId: ptoVentaPrincipalId, numero: ++comprobNumero, ventaId,
         clienteId: cliente?.id ?? null, neto, iva: aplicarPorcentaje(neto as any, IVA),
         total: (neto + aplicarPorcentaje(neto as any, IVA)) as bigint, estadoCae: 'PENDIENTE', intentos: 0,
         cola: { create: { id: nuevoUuid(), estado: 'PENDIENTE', proximoIntento: new Date() } },
@@ -362,7 +415,7 @@ async function main() {
   const [nVar, nStock, nVentas] = await Promise.all([
     prisma.variante.count(), prisma.stockPorSucursal.count(), prisma.venta.count(),
   ]);
-  console.log(`Seed OK: ${nVar} variantes, ${nStock} filas de stock, ${nVentas} ventas.`);
+  console.log(`Seed OK [${NOMBRE_PERFIL}]: ${perfil.sucursales.length} sucursal(es), ${nVar} variantes, ${nStock} filas de stock, ${nVentas} ventas.`);
 }
 
 main()
