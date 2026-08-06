@@ -66,6 +66,16 @@ export interface DescuentoDTO {
   requiereAutorizacion: boolean; esReintegro: boolean; soloLinea: boolean;
 }
 
+/** Un descuento pedido: sin `indiceLinea` es de nivel ticket. */
+export interface DescuentoPedidoDTO {
+  descuentoId: string; indiceLinea?: number; autorizadoPor?: string;
+}
+export interface PreviewDTO {
+  subtotal: string; totalDescuentos: string; total: string;
+  reintegros: { descuentoId: string; monto: string }[];
+  porLinea: string[];
+}
+
 export interface MovimientoCajaDTO {
   id: string; tipo: string; medio: string; monto: string; fechaHora: string;
 }
@@ -141,6 +151,8 @@ export const api = {
 
   // --- Descuentos y devoluciones ---
   descuentos: () => get<DescuentoDTO[]>('/api/descuentos'),
+  previewVenta: (body: { lineas: { varianteId: string; cantidad: number }[]; descuentos: DescuentoPedidoDTO[] }) =>
+    post<PreviewDTO>('/api/ventas/preview', body),
   devolver: (body: unknown) => post<{ devolucionId: string; total: string; saldoCredito: string | null }>('/api/devoluciones', body),
 
   confirmarVenta: async (body: unknown) => {

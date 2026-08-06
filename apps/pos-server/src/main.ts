@@ -112,6 +112,18 @@ app.get('/api/descuentos', { preHandler: requiereAuth }, async () => {
     }));
 });
 
+// Previsualización del ticket: mismos números que confirmar, sin escribir.
+app.post('/api/ventas/preview', { preHandler: requiereAuth }, async (req, reply) => {
+  const b = req.body as { lineas?: Array<{ varianteId: string; cantidad: number }>; descuentos?: Array<{ descuentoId: string; indiceLinea?: number; autorizadoPor?: string }> };
+  if (!Array.isArray(b?.lineas)) return reply.code(400).send({ error: 'Faltan las líneas.' });
+  try {
+    return await ventas.previsualizar({ lineas: b.lineas, descuentos: b.descuentos ?? [] });
+  } catch (e) {
+    if (e instanceof ErrorDescuento) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
+});
+
 // Confirmar venta: requiere permiso de cobro. El vendedor sale de la SESIÓN
 // (no se confía en el cliente).
 app.post('/api/ventas', { preHandler: requierePermiso('ventas.cobrar') }, async (req, reply) => {

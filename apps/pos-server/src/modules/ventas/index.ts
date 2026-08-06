@@ -9,18 +9,21 @@
  * emite comprobantes fiscales: eso es Facturación, que reacciona a
  * `VentaConfirmada`.
  *
- * Operaciones todavía NO implementadas: devoluciones y cambios, entrega de
- * prenda ajustada y anulación. No se declaran acá hasta existir — una firma que
- * no hace nada desinforma más de lo que documenta.
+ * Operaciones todavía NO implementadas: entrega de la prenda ajustada, anulación
+ * de venta, y el CONSUMO del crédito a favor (hoy se genera en la devolución
+ * pero no se puede gastar). No se declaran acá hasta existir — una firma que no
+ * hace nada desinforma más de lo que documenta.
  */
 import { confirmarVenta, type ConfirmarVentaInput } from './confirmar.js';
 import { registrarDevolucion, type RegistrarDevolucionInput } from './devoluciones.js';
+import { previsualizarVenta, type PreviewVentaInput, type PreviewVentaResultado } from './preview.js';
 
 export type { ConfirmarVentaInput } from './confirmar.js';
 export { ErrorDescuento } from './descuentos.js';
 export type { TipoDescuento, DefinicionDescuento } from './descuentos.js';
 export { ErrorDevolucion } from './devoluciones.js';
 export type { RegistrarDevolucionInput, ResolucionDevolucion } from './devoluciones.js';
+export type { PreviewVentaInput, PreviewVentaResultado } from './preview.js';
 
 /** Resultado de confirmar una venta. Los montos van como string: son `Money`. */
 export interface VentaConfirmadaResultado {
@@ -54,9 +57,15 @@ export interface VentasApi {
    * saldo a favor. Todo en una transacción.
    */
   devolver(input: RegistrarDevolucionInput): Promise<DevolucionResultado>;
+  /**
+   * Mismos números que `confirmar`, sin escribir nada. Para que el front no
+   * tenga que reimplementar la aritmética de dinero.
+   */
+  previsualizar(input: PreviewVentaInput): Promise<PreviewVentaResultado>;
 }
 
 export const ventas: VentasApi = {
   confirmar: confirmarVenta as VentasApi['confirmar'],
   devolver: registrarDevolucion as VentasApi['devolver'],
+  previsualizar: previsualizarVenta,
 };

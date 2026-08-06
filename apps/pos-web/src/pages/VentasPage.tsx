@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, pesos, type ProductoDTO, type VarianteDTO } from '../api';
+import { api, pesos, type DescuentoDTO, type DescuentoPedidoDTO, type ProductoDTO, type VarianteDTO } from '../api';
 import { useUser } from '../lib/user';
 import { Icon } from '../ui/Icon';
 
@@ -29,8 +29,11 @@ export function VentasPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [medio, setMedio] = useState('EFECTIVO');
   const [toast, setToast] = useState<string | null>(null);
+  const [descuentos, setDescuentos] = useState<DescuentoPedidoDTO[]>([]);
+  const [modalDesc, setModalDesc] = useState(false);
 
   const puedeCobrar = user.permisos.includes('ventas.cobrar');
+  const puedeAutorizar = user.permisos.includes('descuentos.autorizar');
 
   useEffect(() => {
     if (ctx && !cajaId) {
@@ -45,19 +48,42 @@ export function VentasPage() {
   });
 
   const items = useMemo(() => cart.reduce((n, i) => n + i.cantidad, 0), [cart]);
-  const total = useMemo(() => cart.reduce((s, i) => s + Number(i.precio) * i.cantidad, 0), [cart]);
+  const subtotal = useMemo(() => cart.reduce((s, i) => s + Number(i.precio) * i.cantidad, 0), [cart]);
   const hayAjuste = cart.some((i) => i.requiereAjuste);
+
+  const { data: catalogoDesc = [] } = useQuery({ queryKey: ['descuentos'], queryFn: api.descuentos });
+
+  // El total con descuentos lo calcula el SERVIDOR, con el mismo motor que usa
+  // al confirmar. Reimplementar el redondeo acá sería la forma más rápida de
+  // que la pantalla y el ticket muestren números distintos.
+  const { data: preview, error: errorPreview } = useQuery({
+    queryKey: ['preview', cart.map((i) => `${i.varianteId}x${i.cantidad}`).join(','), JSON.stringify(descuentos)],
+    queryFn: () => api.previewVenta({
+      lineas: cart.map((i) => ({ varianteId: i.varianteId, cantidad: i.cantidad })),
+      descuentos,
+    }),
+    enabled: cart.length > 0,
+    retry: false,
+  });
+
+  const totalDescuentos = Number(preview?.totalDescuentos ?? 0);
+  const total = preview ? Number(preview.total) : subtotal;
+  const reintegros = preview?.reintegros ?? [];
+
+  const nombreDesc = (id: string) => catalogoDesc.find((d) => d.id === id)?.nombre ?? 'Descuento';
 
   const confirmar = useMutation({
     mutationFn: () => api.confirmarVenta({
       sucursalId, cajaId,
       lineas: cart.map((i) => ({ varianteId: i.varianteId, cantidad: i.cantidad, requiereAjuste: i.requiereAjuste })),
       pagos: [{ medio, monto: total }],
+      descuentos,
     }),
     onSuccess: (r) => {
       setToast(`Venta confirmada · ${pesos(r.total)} · ${r.estadoEntrega === 'PENDIENTE_AJUSTE' ? 'con ajuste (entrega diferida)' : 'entregada'}`);
-      setCart([]);
+      setCart([]); setDescuentos([]);
       qc.invalidateQueries({ queryKey: ['productos'] });
+      qc.invalidateQueries({ queryKey: ['caja'] });
       setTimeout(() => setToast(null), 4500);
     },
     onError: (e: Error) => { setToast(`Error: ${e.message}`); setTimeout(() => setToast(null), 4500); },
@@ -76,7 +102,17 @@ export function VentasPage() {
     const c = Math.max(0, Math.min(i.stock, i.cantidad + d));
     return c === 0 ? [] : [{ ...i, cantidad: c }];
   }));
-  const quitar = (id: string) => setCart((prev) => prev.filter((i) => i.varianteId !== id));
+  function quitar(id: string) {
+    const idx = cart.findIndex((i) => i.varianteId === id);
+    setCart((prev) => prev.filter((i) => i.varianteId !== id));
+    // Los descuentos referencian líneas por POSICIÓN: al quitar una, los que
+    // apuntaban a ella dejan de existir y los de más abajo se corren.
+    setDescuentos((prev) => prev.flatMap((d) => {
+      if (d.indiceLinea == null) return [d];
+      if (d.indiceLinea === idx) return [];
+      return [{ ...d, indiceLinea: d.indiceLinea > idx ? d.indiceLinea - 1 : d.indiceLinea }];
+    }));
+  }
   const toggleAjuste = (id: string) => setCart((prev) => prev.map((i) => (i.varianteId === id ? { ...i, requiereAjuste: !i.requiereAjuste } : i)));
 
   return (
@@ -196,12 +232,43 @@ export function VentasPage() {
           )}
 
           <div className="px-6 py-4 border-t border-outline-variant/10">
-            <div className="flex justify-between text-sm text-on-surface-variant mb-1"><span>Subtotal</span><span>{pesos(total)}</span></div>
-            <div className="flex justify-between text-sm text-on-surface-variant mb-3"><span>Descuentos</span><span>$ 0</span></div>
+            <div className="flex justify-between text-sm text-on-surface-variant mb-1"><span>Subtotal</span><span>{pesos(subtotal)}</span></div>
+            <div className={`flex justify-between text-sm mb-3 ${totalDescuentos > 0 ? 'text-on-tertiary-container font-semibold' : 'text-on-surface-variant'}`}>
+              <span>Descuentos</span><span>{totalDescuentos > 0 ? `− ${pesos(totalDescuentos)}` : '$ 0'}</span>
+            </div>
+            {descuentos.length > 0 && (
+              <ul className="mb-3 flex flex-col gap-1">
+                {descuentos.map((d, k) => (
+                  <li key={k} className="flex items-center justify-between gap-2 text-[11px] bg-surface-container-low border border-outline-variant/20 rounded px-2 py-1">
+                    <span className="truncate">
+                      {nombreDesc(d.descuentoId)}
+                      <span className="text-outline"> · {d.indiceLinea == null ? 'ticket' : `línea ${d.indiceLinea + 1}`}</span>
+                    </span>
+                    <button onClick={() => setDescuentos((prev) => prev.filter((_, j) => j !== k))} className="text-outline hover:text-error">
+                      <Icon name="close" className="text-sm" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {errorPreview && (
+              <p className="mb-3 text-[11px] bg-error-container text-on-error-container rounded px-2 py-1.5">
+                {(errorPreview as Error).message}
+              </p>
+            )}
             <div className="flex justify-between items-end pt-3 border-t border-outline-variant/10">
               <span className="font-display text-lg">Total</span>
               <span className="font-display text-3xl text-primary">{pesos(total)}</span>
             </div>
+            {reintegros.length > 0 && (
+              <div className="mt-3 text-[11px] bg-gold-wash/40 border border-gold/20 rounded px-2.5 py-2 flex items-start gap-1.5">
+                <Icon name="account_balance" className="text-on-tertiary-container text-sm mt-px" />
+                <span>
+                  Reintegro bancario de <strong>{pesos(reintegros.reduce((a, r) => a + Number(r.monto), 0))}</strong>.
+                  No baja el total: lo devuelve el banco después.
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="px-6 pb-3">
@@ -219,7 +286,8 @@ export function VentasPage() {
           </div>
 
           <div className="p-6 pt-2 border-t border-outline-variant/10">
-            <button disabled className="w-full py-2.5 mb-2 border border-primary text-primary rounded uppercase tracking-wider text-sm font-semibold opacity-40 cursor-not-allowed">
+            <button disabled={cart.length === 0} onClick={() => setModalDesc(true)}
+              className="w-full py-2.5 mb-2 border border-primary text-primary rounded uppercase tracking-wider text-sm font-semibold hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               Aplicar descuento
             </button>
             <button disabled={cart.length === 0 || confirmar.isPending || !cajaId || !puedeCobrar} onClick={() => confirmar.mutate()}
@@ -234,6 +302,17 @@ export function VentasPage() {
           </div>
         </section>
       </div>
+
+      {modalDesc && (
+        <ModalDescuentos
+          catalogo={catalogoDesc}
+          lineas={cart.map((i, k) => ({ indice: k, texto: `${i.producto} · ${i.talle} ${i.color}` }))}
+          puedeAutorizar={puedeAutorizar}
+          usuarioId={user.id}
+          onCerrar={() => setModalDesc(false)}
+          onAplicar={(d) => { setDescuentos((prev) => [...prev, d]); setModalDesc(false); }}
+        />
+      )}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-primary text-on-primary px-6 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2 z-50">
@@ -256,4 +335,97 @@ function Sel({ value, onChange, options, icon }: { value: string; onChange: (v: 
 }
 function Tag({ children }: { children: React.ReactNode }) {
   return <span className="px-1.5 py-0.5 bg-surface-container border border-outline-variant/20 rounded text-[11px] font-semibold">{children}</span>;
+}
+
+/**
+ * Elegir un descuento y a qué se aplica.
+ *
+ * Los que exigen autorización solo los puede aplicar quien tiene el permiso, y
+ * quedan registrados a su nombre. Un cajero ve el descuento pero no lo puede
+ * usar: tiene que venir un encargado, que es exactamente la regla del mostrador.
+ */
+function ModalDescuentos({ catalogo, lineas, puedeAutorizar, usuarioId, onCerrar, onAplicar }: {
+  catalogo: DescuentoDTO[];
+  lineas: { indice: number; texto: string }[];
+  puedeAutorizar: boolean;
+  usuarioId: string;
+  onCerrar: () => void;
+  onAplicar: (d: DescuentoPedidoDTO) => void;
+}) {
+  const [sel, setSel] = useState<DescuentoDTO | null>(null);
+  const [destino, setDestino] = useState<'ticket' | number>('ticket');
+
+  const bloqueado = !!sel?.requiereAutorizacion && !puedeAutorizar;
+  // El combo se aplica sobre una línea (cuenta unidades del mismo artículo) y el
+  // reintegro sobre el ticket: no tiene sentido pedir el destino.
+  const destinoFijo = sel?.soloLinea ? 'linea' : sel?.esReintegro ? 'ticket' : null;
+
+  return (
+    <div className="fixed inset-0 bg-primary/40 grid place-items-center z-50 p-4" onClick={onCerrar}>
+      <div className="bg-surface-container-lowest rounded-xl shadow-xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
+          <h3 className="font-display text-xl text-primary">Aplicar descuento</h3>
+          <button onClick={onCerrar} className="text-outline"><Icon name="close" /></button>
+        </div>
+
+        <div className="p-6 flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            {catalogo.map((d) => {
+              const noPuede = d.requiereAutorizacion && !puedeAutorizar;
+              return (
+                <button key={d.id} onClick={() => { setSel(d); setDestino(d.soloLinea ? 0 : 'ticket'); }} disabled={noPuede}
+                  className={`text-left border rounded-lg px-4 py-3 transition-colors ${
+                    sel?.id === d.id ? 'border-primary bg-surface-container-high'
+                      : noPuede ? 'border-outline-variant/20 opacity-50 cursor-not-allowed'
+                        : 'border-outline-variant/30 hover:border-outline'}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm">{d.nombre}</span>
+                    {d.esReintegro && <span className="text-[10px] uppercase tracking-wide bg-gold-wash text-on-tertiary-container px-1.5 py-0.5 rounded">reintegro</span>}
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">
+                    {d.esReintegro ? 'No baja el total: lo devuelve el banco.' : d.soloLinea ? 'Se aplica a una línea.' : 'Línea o ticket.'}
+                    {d.requiereAutorizacion && (noPuede ? ' · Requiere un encargado.' : ' · Lo autorizás vos.')}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {sel && !destinoFijo && (
+            <div>
+              <h4 className="text-xs uppercase tracking-wider text-on-surface-variant mb-2">Aplicar a</h4>
+              <select value={String(destino)} onChange={(e) => setDestino(e.target.value === 'ticket' ? 'ticket' : Number(e.target.value))}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded px-3 py-2 text-sm focus:outline-none">
+                <option value="ticket">Todo el ticket</option>
+                {lineas.map((l) => <option key={l.indice} value={l.indice}>{l.texto}</option>)}
+              </select>
+            </div>
+          )}
+
+          {sel?.soloLinea && (
+            <div>
+              <h4 className="text-xs uppercase tracking-wider text-on-surface-variant mb-2">Línea</h4>
+              <select value={String(destino)} onChange={(e) => setDestino(Number(e.target.value))}
+                className="w-full bg-surface-container-low border border-outline-variant/30 rounded px-3 py-2 text-sm focus:outline-none">
+                {lineas.map((l) => <option key={l.indice} value={l.indice}>{l.texto}</option>)}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-outline-variant/10">
+          <button
+            disabled={!sel || bloqueado}
+            onClick={() => sel && onAplicar({
+              descuentoId: sel.id,
+              ...(sel.esReintegro || destino === 'ticket' ? {} : { indiceLinea: Number(destino) }),
+              ...(sel.requiereAutorizacion ? { autorizadoPor: usuarioId } : {}),
+            })}
+            className="w-full py-2.5 bg-primary text-on-primary rounded text-sm font-semibold disabled:opacity-40">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
