@@ -1,4 +1,4 @@
-import { prisma } from '../db.js';
+import { prisma } from '../../db.js';
 
 /**
  * KPIs del dashboard, calculados desde los datos reales (ventas, stock, precios).

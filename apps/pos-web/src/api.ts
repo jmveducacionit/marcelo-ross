@@ -122,6 +122,28 @@ export interface ConsignacionDTO {
   sinCosto: { varianteId: string; producto: string; cantidadVendida: number }[];
 }
 
+export interface ComisionDTO {
+  vendedorId: string; nombre: string; rol: string; tickets: number;
+  vendido: string; devuelto: string; base: string; porcentaje: number;
+  comision: string; liquidada: boolean; ticketPromedio: string; participacion: number;
+}
+export interface EmpleadoDTO {
+  id: string; nombre: string; usuario: string; rol: string; sucursal: string;
+  activo: boolean; ultimoLogin: string | null; bloqueado: boolean;
+}
+export interface AnaliticaDTO {
+  periodo: string;
+  margenes: {
+    porMarca: { marca: string; vendido: string; costo: string; margen: string; margenPct: number; unidades: number; esConsignacion: boolean }[];
+    totales: { vendido: string; costo: string; margen: string; margenPct: number };
+    sinCosto: { unidades: number; vendido: string };
+  };
+  rotacion: {
+    porTalle: { clave: string; vendidas: number; stock: number; indice: number }[];
+    porTemporada: { clave: string; vendidas: number; stock: number; indice: number }[];
+  };
+}
+
 export interface MovimientoCajaDTO {
   id: string; tipo: string; medio: string; monto: string; fechaHora: string;
 }
@@ -195,6 +217,15 @@ export const api = {
     post<{ movimientoId: string }>('/api/caja/movimiento', body),
   cajaCerrar: (body: { sesionCajaId: string; sucursalId: string; totalContado: number; observaciones?: string }) =>
     post<ArqueoDTO>('/api/caja/cerrar', body),
+
+  // --- Empleados ---
+  empleados: () => get<EmpleadoDTO[]>('/api/empleados'),
+  comisiones: (periodo: string, sucursalId?: string) =>
+    get<{ periodo: string; filas: ComisionDTO[] }>(`/api/empleados/comisiones?periodo=${periodo}${sucursalId ? `&sucursalId=${sucursalId}` : ''}`),
+  liquidarComisiones: (periodo: string, sucursalId: string) =>
+    post<{ periodo: string; vendedores: number; total: string }>('/api/empleados/comisiones/liquidar', { periodo, sucursalId }),
+  analitica: (periodo: string, sucursalId?: string) =>
+    get<AnaliticaDTO>(`/api/dashboard/analitica?periodo=${periodo}${sucursalId ? `&sucursalId=${sucursalId}` : ''}`),
 
   // --- Proveedores ---
   proveedores: () => get<ProveedorItemDTO[]>('/api/proveedores'),

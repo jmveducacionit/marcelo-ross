@@ -14,6 +14,7 @@
  * nada desinforma más de lo que documenta.
  */
 import type { RegistroOperacion, Tx } from '../../shared/operacion.js';
+import { buscarProductos } from './catalogo.js';
 import { stockDetalle, stockListado } from './consultas.js';
 import {
   ajustarStock, descontarPorVenta as descontarPorVentaImpl,
@@ -78,6 +79,8 @@ export interface StockApi {
   listado(sucursalId: string, search: string): Promise<ProductoConStock[]>;
   /** Matriz talle×color de un producto. `null` si el producto no existe. */
   detalle(productoId: string, sucursalId: string): Promise<DetalleDeProducto | null>;
+  /** Catálogo para la pantalla de venta: producto con sus variantes, stock y precio. */
+  catalogo(sucursalId: string, search: string): ReturnType<typeof buscarProductos>;
   /** Ingreso de mercadería: suma unidades. Emite `StockIngresado`. */
   ingresar(varianteId: string, sucursalId: string, cantidad: number, ctx: CtxStock): Promise<{ nueva: number }>;
   /** Ajuste de inventario: fija el stock al valor contado. Emite `StockIngresado`/`StockDescontado`. */
@@ -91,6 +94,7 @@ export interface StockApi {
 export const stock: StockApi = {
   listado: stockListado,
   detalle: stockDetalle,
+  catalogo: buscarProductos,
   ingresar: ingresarStock,
   ajustar: ajustarStock,
   transferir: transferirStock,

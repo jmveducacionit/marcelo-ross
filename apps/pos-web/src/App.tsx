@@ -8,11 +8,11 @@ import { VentasPage } from './pages/VentasPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { StockPage } from './pages/StockPage';
 import { ClientesPage } from './pages/ClientesPage';
-import { EnConstruccion } from './pages/EnConstruccion';
 import { CajaPage } from './pages/CajaPage';
 import { DevolucionesPage } from './pages/DevolucionesPage';
 import { FacturacionPage } from './pages/FacturacionPage';
 import { ProveedoresPage } from './pages/ProveedoresPage';
+import { EmpleadosPage } from './pages/EmpleadosPage';
 
 export function App() {
   const qc = useQueryClient();
@@ -34,7 +34,7 @@ export function App() {
           <Route path="/stock" element={<StockPage />} />
           <Route path="/caja" element={<CajaPage />} />
           <Route path="/devoluciones" element={<DevolucionesPage />} />
-          <Route path="/empleados" element={<EnConstruccion titulo="Empleados" icon="badge" detalle="Auth y roles ya implementados. Faltan comisiones, turnos y ranking, más la gestión de usuarios por UI." />} />
+          <Route path="/empleados" element={<EmpleadosPage />} />
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/facturacion" element={<FacturacionPage />} />

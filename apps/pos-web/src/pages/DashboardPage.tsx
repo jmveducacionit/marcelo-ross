@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { api, pesos, type DashboardDTO } from '../api';
 import { Icon } from '../ui/Icon';
 
@@ -123,8 +124,95 @@ export function DashboardPage() {
             </div>
           </div>
         </section>
+
+        <Analitica />
       </div>
     </div>
+  );
+}
+
+/**
+ * Margen y rotación del mes.
+ *
+ * El margen recién es calculable desde que existen los remitos: hasta entonces
+ * el sistema sabía a cuánto vendía pero no a cuánto había comprado. Lo vendido
+ * sin costo conocido se avisa en vez de asumir cero, porque un costo cero da
+ * 100 % de margen y ese número miente hacia arriba.
+ */
+function Analitica() {
+  const periodo = (() => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`; })();
+  const { data } = useQuery({ queryKey: ['analitica', periodo], queryFn: () => api.analitica(periodo) });
+  if (!data) return null;
+  const { totales, porMarca, sinCosto } = data.margenes;
+
+  return (
+    <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-outline-variant/10 flex items-baseline justify-between gap-3">
+          <h4 className="font-display text-xl text-on-surface">Margen por marca</h4>
+          <span className="text-sm text-on-surface-variant">
+            {pesos(totales.margen)} <span className="text-outline">({totales.margenPct}%)</span>
+          </span>
+        </div>
+        <ul className="divide-y divide-outline-variant/10">
+          {porMarca.slice(0, 6).map((m) => (
+            <li key={`${m.marca}-${m.esConsignacion}`} className="px-6 py-2.5 flex items-center gap-3 text-sm">
+              <div className="flex-1 min-w-0">
+                <p className="truncate">
+                  {m.marca}
+                  {m.esConsignacion && (
+                    <span className="ml-1.5 text-[9px] uppercase tracking-wide bg-gold-wash text-on-tertiary-container px-1.5 py-0.5 rounded">consig.</span>
+                  )}
+                </p>
+                <p className="text-[11px] text-outline">{m.unidades} u. · vendido {pesos(m.vendido)}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold">{pesos(m.margen)}</p>
+                <p className="text-[11px] text-outline">{m.margenPct}%</p>
+              </div>
+            </li>
+          ))}
+          {porMarca.length === 0 && <li className="px-6 py-6 text-sm text-on-surface-variant">Sin ventas con costo conocido este mes.</li>}
+        </ul>
+        {sinCosto.unidades > 0 && (
+          <p className="px-6 py-2.5 text-[11px] bg-gold-wash/40 border-t border-gold/20">
+            {sinCosto.unidades} unidad(es) vendidas sin costo registrado ({pesos(sinCosto.vendido)}): no entraron por
+            remito, así que quedan fuera del margen.
+          </p>
+        )}
+      </div>
+
+      <div className="bg-surface-container-lowest border border-outline-variant/10 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-outline-variant/10">
+          <h4 className="font-display text-xl text-on-surface">Rotación</h4>
+          <p className="text-xs text-outline mt-0.5">Unidades vendidas por unidad en stock. Alto = se mueve.</p>
+        </div>
+        <div className="grid grid-cols-2 divide-x divide-outline-variant/10">
+          <div>
+            <p className="px-5 pt-3 text-[11px] uppercase tracking-wider text-on-surface-variant">Por talle</p>
+            <ul className="px-5 py-2 space-y-1.5">
+              {data.rotacion.porTalle.slice(0, 6).map((r) => (
+                <li key={r.clave} className="flex items-center justify-between text-sm">
+                  <span className="font-semibold">{r.clave}</span>
+                  <span className="text-outline text-xs">{r.vendidas} u. · idx {r.indice}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="px-5 pt-3 text-[11px] uppercase tracking-wider text-on-surface-variant">Por temporada</p>
+            <ul className="px-5 py-2 space-y-1.5">
+              {data.rotacion.porTemporada.map((r) => (
+                <li key={r.clave} className="flex items-center justify-between text-sm gap-2">
+                  <span className="truncate">{r.clave}</span>
+                  <span className="text-outline text-xs whitespace-nowrap">{r.vendidas} u.</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

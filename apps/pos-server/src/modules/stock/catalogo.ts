@@ -1,4 +1,4 @@
-import { prisma } from '../db.js';
+import { prisma } from '../../db.js';
 
 /** Busca productos con su matriz talle×color, stock (de la sucursal) y precio vigente. */
 export async function buscarProductos(sucursalId: string, search: string) {

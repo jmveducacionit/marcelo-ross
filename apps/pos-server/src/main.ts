@@ -7,14 +7,14 @@ import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import { prisma } from './db.js';
 import { bus } from './shared/bus.js';
-import { buscarProductos } from './services/catalogo.js';
 import { ErrorDescuento, ErrorDevolucion, ventas, type ConfirmarVentaInput, type RegistrarDevolucionInput } from './modules/ventas/index.js';
-import { kpis } from './services/dashboard.js';
+import { dashboard, rangoDelMes } from './modules/dashboard/index.js';
 import { ErrorCredito, clientes } from './modules/clientes/index.js';
 import { stock } from './modules/stock/index.js';
 import { ErrorCaja, caja } from './modules/caja/index.js';
 import { facturacion, iniciarWorkers } from './modules/facturacion/index.js';
 import { ErrorProveedor, proveedores } from './modules/proveedores/index.js';
+import { ErrorComision, empleados } from './modules/empleados/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -107,7 +107,7 @@ app.get('/api/clientes/:id', { preHandler: requiereAuth }, async (req, reply) =>
 app.get('/api/productos', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { sucursalId?: string; search?: string };
   if (!q.sucursalId) return [];
-  return buscarProductos(q.sucursalId, q.search ?? '');
+  return stock.catalogo(q.sucursalId, q.search ?? '');
 });
 
 // Catálogo de descuentos vigentes (ADR-0004). Son datos, no código.
@@ -207,6 +207,32 @@ app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
     ...auditoria.map((a) => ({ tipo: 'auditoria' as const, clave: a.accion, estado: a.usuarioId, ocurridoEn: a.ocurridoEn })),
   ].sort((a, b) => +new Date(b.ocurridoEn) - +new Date(a.ocurridoEn)).slice(0, 16);
   return items;
+});
+
+// --- Empleados -------------------------------------------------------------
+function periodoDe(q: { periodo?: string }): string {
+  if (q.periodo) return q.periodo;
+  const h = new Date();
+  return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
+}
+
+app.get('/api/empleados', { preHandler: requierePermiso('usuarios.gestionar') }, async () => empleados.listar());
+
+app.get('/api/empleados/comisiones', { preHandler: requierePermiso('reportes.ver') }, async (req) => {
+  const q = req.query as { periodo?: string; sucursalId?: string };
+  const periodo = periodoDe(q);
+  return { periodo, filas: await empleados.ranking(periodo, q.sucursalId) };
+});
+
+app.post('/api/empleados/comisiones/liquidar', { preHandler: requierePermiso('usuarios.gestionar') }, async (req, reply) => {
+  const b = req.body as { periodo?: string; sucursalId?: string };
+  if (!b?.periodo || !b?.sucursalId) return reply.code(400).send({ error: 'Faltan período o sucursal.' });
+  try {
+    return await empleados.liquidar({ periodo: b.periodo, sucursalId: b.sucursalId, usuarioId: req.usuario!.id });
+  } catch (e) {
+    if (e instanceof ErrorComision) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
 });
 
 // --- Proveedores -----------------------------------------------------------
@@ -339,7 +365,17 @@ app.post('/api/caja/cerrar', { preHandler: requierePermiso('caja.operar') }, asy
 });
 
 // Dashboard: KPIs (requiere permiso de reportes → Admin / Encargado / Contador).
-app.get('/api/dashboard', { preHandler: requierePermiso('reportes.ver') }, async () => kpis());
+app.get('/api/dashboard', { preHandler: requierePermiso('reportes.ver') }, async () => dashboard.kpis());
+
+app.get('/api/dashboard/analitica', { preHandler: requierePermiso('reportes.ver') }, async (req) => {
+  const q = req.query as { periodo?: string; sucursalId?: string };
+  const rango = rangoDelMes(q.periodo);
+  const [m, r] = await Promise.all([
+    dashboard.margenes(rango, q.sucursalId),
+    dashboard.rotacion(rango, q.sucursalId),
+  ]);
+  return { periodo: q.periodo ?? `${rango.desde.getFullYear()}-${String(rango.desde.getMonth() + 1).padStart(2, '0')}`, margenes: m, rotacion: r };
+});
 
 // Stock: listado + detalle con matriz talle×color (consulta: cualquier usuario).
 app.get('/api/stock', { preHandler: requiereAuth }, async (req) => {
