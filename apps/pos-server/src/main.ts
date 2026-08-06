@@ -13,6 +13,7 @@ import { kpis } from './services/dashboard.js';
 import { ErrorCredito, clientes } from './modules/clientes/index.js';
 import { stock } from './modules/stock/index.js';
 import { ErrorCaja, caja } from './modules/caja/index.js';
+import { facturacion, iniciarWorkers } from './modules/facturacion/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -27,6 +28,18 @@ await app.register(cookie);
 
 // Consumidor in-process de ejemplo: loguea cada evento publicado (post-commit).
 bus.on('*', (e) => console.log(`[evento] ${e.tipo} venta=${e.payload?.ventaId ?? ''}`));
+
+// Facturación reacciona a la venta, no participa de su transacción: el
+// comprobante queda PENDIENTE y un worker le saca el CAE cuando hay conexión.
+bus.on('VentaConfirmada', (e) => {
+  const ventaId = e.payload?.ventaId as string | undefined;
+  if (!ventaId) return;
+  facturacion.emitirParaVenta(ventaId).catch((err) => {
+    // No se propaga: la venta YA está confirmada y no se puede deshacer por
+    // esto. El barrido de recuperación lo levanta en la próxima pasada.
+    console.error('[facturacion] no se pudo encolar el comprobante:', err?.message ?? err);
+  });
+});
 
 const TTL_SESION_SEG = 12 * 60 * 60;
 
@@ -195,6 +208,30 @@ app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
   return items;
 });
 
+// --- Facturación -----------------------------------------------------------
+app.get('/api/comprobantes', { preHandler: requierePermiso('reportes.ver') }, async (req) => {
+  const q = req.query as { sucursalId?: string };
+  const [items, resumen] = await Promise.all([
+    facturacion.listar(q.sucursalId),
+    facturacion.resumen(q.sucursalId),
+  ]);
+  return { items, resumen };
+});
+
+// Forzar una pasada de la cola. En producción lo hace el worker solo; acá sirve
+// para no esperar en la demo.
+app.post('/api/comprobantes/procesar', { preHandler: requierePermiso('reportes.ver') }, async () => {
+  await facturacion.recuperar();
+  return facturacion.procesarCola();
+});
+
+app.get('/api/libro-iva', { preHandler: requierePermiso('reportes.ver') }, async (req) => {
+  const q = req.query as { desde?: string; hasta?: string; sucursalId?: string };
+  const hasta = q.hasta ? new Date(q.hasta) : new Date();
+  const desde = q.desde ? new Date(q.desde) : new Date(hasta.getFullYear(), hasta.getMonth(), 1);
+  return facturacion.libroIva(desde, hasta, q.sucursalId);
+});
+
 // --- Control de Caja -------------------------------------------------------
 app.get('/api/caja/:cajaId', { preHandler: requierePermiso('caja.operar') }, async (req) => {
   const { cajaId } = req.params as { cajaId: string };
@@ -296,6 +333,9 @@ if (existsSync(WEB_DIR)) {
   });
   console.log(`[web] sirviendo el front desde ${WEB_DIR}`);
 }
+
+// Workers de fondo: recuperación de comprobantes + cola de CAE.
+iniciarWorkers();
 
 const PORT = Number(process.env.PORT ?? 3000);
 // 127.0.0.1 por defecto: la demo corre en una sola máquina. Para varias cajas en

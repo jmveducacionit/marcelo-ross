@@ -89,6 +89,24 @@ export interface VentaDetalleDTO {
   lineas: LineaVentaDetalleDTO[];
 }
 
+export interface ComprobanteDTO {
+  id: string; tipo: string; puntoVenta: number; numero: number; etiqueta: string;
+  fechaEmision: string; cliente: string | null;
+  neto: string; iva: string; total: string;
+  estadoCae: 'PENDIENTE' | 'OBTENIDO' | 'RECHAZADO';
+  cae: string | null; vencimientoCae: string | null;
+  intentos: number; error: string | null; ventaId: string | null;
+}
+export interface ResumenFiscalDTO {
+  pendientes: number; obtenidos: number; rechazados: number;
+  facturado: { neto: string; iva: string; total: string };
+}
+export interface LibroIvaDTO {
+  desde: string; hasta: string;
+  lineas: { fecha: string; tipo: string; comprobante: string; receptor: string; cuit: string | null; neto: string; iva: string; total: string; cae: string | null }[];
+  totales: { neto: string; iva: string; total: string };
+}
+
 export interface MovimientoCajaDTO {
   id: string; tipo: string; medio: string; monto: string; fechaHora: string;
 }
@@ -162,6 +180,12 @@ export const api = {
     post<{ movimientoId: string }>('/api/caja/movimiento', body),
   cajaCerrar: (body: { sesionCajaId: string; sucursalId: string; totalContado: number; observaciones?: string }) =>
     post<ArqueoDTO>('/api/caja/cerrar', body),
+
+  // --- Facturación ---
+  comprobantes: (sucursalId: string) =>
+    get<{ items: ComprobanteDTO[]; resumen: ResumenFiscalDTO }>(`/api/comprobantes?sucursalId=${sucursalId}`),
+  procesarCola: () => post<{ procesados: number; obtenidos: number; rechazados: number; reintentar: number }>('/api/comprobantes/procesar', {}),
+  libroIva: (sucursalId: string) => get<LibroIvaDTO>(`/api/libro-iva?sucursalId=${sucursalId}`),
 
   // --- Descuentos y devoluciones ---
   descuentos: () => get<DescuentoDTO[]>('/api/descuentos'),

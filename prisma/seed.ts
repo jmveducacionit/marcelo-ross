@@ -445,16 +445,21 @@ async function main() {
       })),
     });
 
-    // Comprobante fiscal en cola de CAE (offline-first: PENDIENTE)
+    // Comprobante fiscal en cola de CAE (offline-first: PENDIENTE).
+    // El precio de góndola YA incluye IVA (retail argentino), así que el total
+    // del comprobante es el total de la venta y el neto se DESAGREGA hacia
+    // atrás. Sumarle IVA al total sería cobrarle al cliente más que la etiqueta.
     const esFacturaA = cliente?.condicionIva === 'Responsable Inscripto';
-    const neto = total;
+    const escala = BigInt(100 + IVA);
+    const neto = (total * 100n * 2n + escala) / (escala * 2n); // mitad arriba
+    const iva = total - neto;                                   // neto + iva == total, exacto
     const comprobanteId = nuevoUuid();
     await prisma.comprobante.create({
       data: {
         id: comprobanteId, tipo: esFacturaA ? 'FACTURA_A' : 'FACTURA_B',
         puntoVentaId: ptoVentaPrincipalId, numero: ++comprobNumero, ventaId,
-        clienteId: cliente?.id ?? null, neto, iva: aplicarPorcentaje(neto as any, IVA),
-        total: (neto + aplicarPorcentaje(neto as any, IVA)) as bigint, estadoCae: 'PENDIENTE', intentos: 0,
+        clienteId: cliente?.id ?? null, neto, iva, total,
+        estadoCae: 'PENDIENTE', intentos: 0,
         cola: { create: { id: nuevoUuid(), estado: 'PENDIENTE', proximoIntento: new Date() } },
       },
     });

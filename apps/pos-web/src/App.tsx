@@ -11,6 +11,7 @@ import { ClientesPage } from './pages/ClientesPage';
 import { EnConstruccion } from './pages/EnConstruccion';
 import { CajaPage } from './pages/CajaPage';
 import { DevolucionesPage } from './pages/DevolucionesPage';
+import { FacturacionPage } from './pages/FacturacionPage';
 
 export function App() {
   const qc = useQueryClient();
@@ -35,7 +36,7 @@ export function App() {
           <Route path="/empleados" element={<EnConstruccion titulo="Empleados" icon="badge" detalle="Auth y roles ya implementados. Faltan comisiones, turnos y ranking, más la gestión de usuarios por UI." />} />
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/facturacion" element={<EnConstruccion titulo="Facturación" icon="receipt_long" detalle="Comprobantes A/B, notas de crédito, CAE ante ARCA (vía intermediario) y libro IVA." />} />
+          <Route path="/facturacion" element={<FacturacionPage />} />
           <Route path="/proveedores" element={<EnConstruccion titulo="Proveedores" icon="local_shipping" detalle="Órdenes de compra por temporada, recepción contra remito, cuenta corriente y liquidación de consignación." />} />
           <Route path="*" element={<Navigate to="/ventas" replace />} />
         </Route>
