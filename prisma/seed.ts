@@ -110,6 +110,14 @@ async function limpiar() {
     prisma.turno.deleteMany(),
     prisma.usuario.deleteMany(),
     prisma.movimientoStock.deleteMany(),
+    prisma.lineaLiquidacion.deleteMany(),
+    prisma.liquidacionConsignacion.deleteMany(),
+    prisma.movimientoCuentaProveedor.deleteMany(),
+    prisma.cuentaCorrienteProveedor.deleteMany(),
+    prisma.lineaRemito.deleteMany(),
+    prisma.remito.deleteMany(),
+    prisma.lineaOrdenCompra.deleteMany(),
+    prisma.ordenCompra.deleteMany(),
     prisma.lineaDevolucion.deleteMany(),
     prisma.devolucion.deleteMany(),
     prisma.descuentoAplicado.deleteMany(),
@@ -366,6 +374,61 @@ async function main() {
     })),
   });
   const ptoVentaPrincipalId = puntosVenta[0]!;
+
+  // --- Remitos de compra ------------------------------------------------------
+  // Sin remito no hay COSTO, y sin costo no se puede liquidar la consignación ni
+  // calcular el margen. El costo se toma como ~45%% del precio de venta, que es un
+  // markup plausible para el rubro.
+  const variantesConProveedor = await prisma.variante.findMany({
+    include: { productoPadre: { include: { marca: true } }, precios: { where: { vigenteHasta: null }, take: 1 } },
+  });
+  const porProveedor = new Map<string, typeof variantesConProveedor>();
+  for (const v of variantesConProveedor) {
+    const provId = v.productoPadre.marca.proveedorId;
+    if (!provId) continue;
+    if (!porProveedor.has(provId)) porProveedor.set(provId, []);
+    porProveedor.get(provId)!.push(v);
+  }
+
+  let remitoSeq = 0;
+  for (const [proveedorId, vars] of porProveedor) {
+    // Un remito por proveedor, con TODAS sus variantes: si alguna queda afuera,
+    // no tiene costo y no se puede liquidar ni calcular su margen.
+    const muestra = vars;
+    if (muestra.length === 0) continue;
+    const remitoId = nuevoUuid();
+    const lineas = muestra.map((v) => {
+      const precio = v.precios[0]?.precio ?? 0n;
+      const costo = (precio * 45n) / 100n;
+      return { id: nuevoUuid(), varianteId: v.id, cantidad: entre(3, 10), costoUnitario: costo };
+    });
+    const totalRemito = lineas.reduce((acc, l) => acc + l.costoUnitario * BigInt(l.cantidad), 0n);
+    await prisma.remito.create({
+      data: {
+        id: remitoId, proveedorId, sucursalId: sucursalPrincipalId,
+        numero: `R-0001-${String(++remitoSeq).padStart(5, '0')}`,
+        fecha: new Date('2026-07-05'), estado: 'RECIBIDO', total: totalRemito,
+        lineas: { create: lineas },
+      },
+    });
+
+    // La mercadería CONSIGNADA no genera deuda al recibirla (ADR-0006): la deuda
+    // nace al venderla. Solo se le debe lo propio.
+    const deuda = lineas.reduce((acc, l) => {
+      const v = muestra.find((x) => x.id === l.varianteId)!;
+      return v.esConsignacion ? acc : acc + l.costoUnitario * BigInt(l.cantidad);
+    }, 0n);
+    if (deuda > 0n) {
+      const cuentaId = nuevoUuid();
+      await prisma.cuentaCorrienteProveedor.create({ data: { id: cuentaId, proveedorId, saldo: deuda } });
+      await prisma.movimientoCuentaProveedor.create({
+        data: {
+          id: nuevoUuid(), cuentaId, monto: deuda, motivo: 'RECEPCION_REMITO',
+          remitoId, usuarioId: 'seed', ocurridoEn: new Date('2026-07-05'),
+        },
+      });
+    }
+  }
 
   // --- Turno y caja abierta ---------------------------------------------------
   // La instalación tiene que quedar LISTA PARA VENDER: sin una caja abierta, la

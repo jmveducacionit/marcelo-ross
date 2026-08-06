@@ -1,4 +1,4 @@
-import { nuevoUuid } from '@pos/core-domain';
+import { nuevoUuid, type Money } from '@pos/core-domain';
 import { operacionDeDominio, type RegistroOperacion, type Tx } from '../../shared/operacion.js';
 
 interface Ctx { usuarioId: string; sucursalId: string; }
@@ -139,6 +139,62 @@ export async function reingresarPorDevolucion(tx: Tx, reg: RegistroOperacion, in
     const antes = previoDe.get(l.varianteId) ?? 0;
     reg.auditar({
       entidad: 'StockPorSucursal', entidadId: l.varianteId, accion: 'REINGRESO_POR_DEVOLUCION',
+      antes: { cantidad: antes }, despues: { cantidad: antes + l.cantidad },
+    });
+  }
+}
+
+export interface IngresoPorRemitoInput {
+  remitoId: string;
+  sucursalId: string;
+  usuarioId: string;
+  ocurridoEn: Date;
+  lineas: Array<{ varianteId: string; cantidad: number; costoUnitario: Money }>;
+}
+
+/**
+ * Ingreso por remito de proveedor, **dentro de la transacción del llamador**.
+ * Tercer puerto transaccional del módulo, igual que el descuento por venta y el
+ * reingreso por devolución: recibir la mercadería y cargarla al stock son un
+ * solo hecho.
+ *
+ * El `costoUnitario` viaja en el evento porque Dashboard lo necesita para el
+ * margen y Proveedores para la liquidación. No es el precio de venta.
+ */
+export async function ingresarPorRemito(tx: Tx, reg: RegistroOperacion, input: IngresoPorRemitoInput): Promise<void> {
+  const varianteIds = [...new Set(input.lineas.map((l) => l.varianteId))];
+  const previos = await tx.stockPorSucursal.findMany({
+    where: { varianteId: { in: varianteIds }, sucursalId: input.sucursalId },
+    select: { varianteId: true, cantidad: true },
+  });
+  const previoDe = new Map(previos.map((s) => [s.varianteId, s.cantidad]));
+
+  for (const l of input.lineas) {
+    await tx.stockPorSucursal.upsert({
+      where: { varianteId_sucursalId: { varianteId: l.varianteId, sucursalId: input.sucursalId } },
+      update: { cantidad: { increment: l.cantidad } },
+      create: { id: nuevoUuid(), varianteId: l.varianteId, sucursalId: input.sucursalId, cantidad: l.cantidad },
+    });
+    await tx.movimientoStock.create({
+      data: {
+        id: nuevoUuid(), varianteId: l.varianteId, sucursalId: input.sucursalId,
+        tipo: 'INGRESO', cantidad: l.cantidad, motivo: 'Recepción contra remito',
+        referenciaId: input.remitoId, usuarioId: input.usuarioId, ocurridoEn: input.ocurridoEn,
+      },
+    });
+
+    reg.emitir({
+      tipo: 'StockIngresado',
+      meta: reg.meta({ ocurridoEn: input.ocurridoEn.toISOString() }),
+      payload: {
+        varianteId: l.varianteId, cantidad: l.cantidad, motivo: 'REMITO',
+        remitoId: input.remitoId, costoUnitario: l.costoUnitario.toString(),
+      },
+    });
+
+    const antes = previoDe.get(l.varianteId) ?? 0;
+    reg.auditar({
+      entidad: 'StockPorSucursal', entidadId: l.varianteId, accion: 'INGRESO_POR_REMITO',
       antes: { cantidad: antes }, despues: { cantidad: antes + l.cantidad },
     });
   }

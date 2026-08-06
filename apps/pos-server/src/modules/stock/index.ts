@@ -9,19 +9,20 @@
  * commitear sin auditoría (ADR-0010).
  *
  * Operaciones todavía NO implementadas (Etapa 2 del roadmap): generación de códigos
- * de barras, ingreso por remito, recepción de transferencia separada del envío,
- * inventario físico y alertas de reposición. No se declaran acá hasta existir —
- * una firma que no hace nada desinforma más de lo que documenta.
+ * de barras, recepción de transferencia separada del envío, inventario físico y
+ * alertas de reposición. No se declaran acá hasta existir — una firma que no hace
+ * nada desinforma más de lo que documenta.
  */
 import type { RegistroOperacion, Tx } from '../../shared/operacion.js';
 import { stockDetalle, stockListado } from './consultas.js';
 import {
-  ajustarStock, descontarPorVenta as descontarPorVentaImpl, ingresarStock,
+  ajustarStock, descontarPorVenta as descontarPorVentaImpl,
+  ingresarPorRemito as ingresarPorRemitoImpl, ingresarStock,
   reingresarPorDevolucion as reingresarPorDevolucionImpl, transferirStock,
-  type DescuentoPorVentaInput, type ReingresoPorDevolucionInput,
+  type DescuentoPorVentaInput, type IngresoPorRemitoInput, type ReingresoPorDevolucionInput,
 } from './movimientos.js';
 
-export type { DescuentoPorVentaInput, LineaADescontar, ReingresoPorDevolucionInput } from './movimientos.js';
+export type { DescuentoPorVentaInput, IngresoPorRemitoInput, LineaADescontar, ReingresoPorDevolucionInput } from './movimientos.js';
 
 // --- Tipos del contrato ------------------------------------------------------
 
@@ -131,3 +132,15 @@ export type ReingresarPorDevolucion = (
 ) => Promise<void>;
 
 export const reingresarPorDevolucion: ReingresarPorDevolucion = reingresarPorDevolucionImpl;
+
+/**
+ * Ingresa stock por recepción de un remito, dentro de la transacción del
+ * llamador. Lo usa Proveedores: recibir y cargar al stock son un solo hecho.
+ */
+export type IngresarPorRemito = (
+  tx: Tx,
+  reg: RegistroOperacion,
+  input: IngresoPorRemitoInput,
+) => Promise<void>;
+
+export const ingresarPorRemito: IngresarPorRemito = ingresarPorRemitoImpl;

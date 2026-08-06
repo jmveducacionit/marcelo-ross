@@ -14,6 +14,7 @@ import { ErrorCredito, clientes } from './modules/clientes/index.js';
 import { stock } from './modules/stock/index.js';
 import { ErrorCaja, caja } from './modules/caja/index.js';
 import { facturacion, iniciarWorkers } from './modules/facturacion/index.js';
+import { ErrorProveedor, proveedores } from './modules/proveedores/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -206,6 +207,66 @@ app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
     ...auditoria.map((a) => ({ tipo: 'auditoria' as const, clave: a.accion, estado: a.usuarioId, ocurridoEn: a.ocurridoEn })),
   ].sort((a, b) => +new Date(b.ocurridoEn) - +new Date(a.ocurridoEn)).slice(0, 16);
   return items;
+});
+
+// --- Proveedores -----------------------------------------------------------
+const PERMISO_PROV = 'precios.gestionar';
+
+app.get('/api/proveedores', { preHandler: requierePermiso(PERMISO_PROV) }, async () => proveedores.listar());
+
+app.get('/api/proveedores/:id', { preHandler: requierePermiso(PERMISO_PROV) }, async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const det = await proveedores.detalle(id);
+  if (!det) return reply.code(404).send({ error: 'Proveedor no encontrado.' });
+  return det;
+});
+
+app.get('/api/proveedores/:id/consignacion', { preHandler: requierePermiso(PERMISO_PROV) }, async (req) => {
+  const { id } = req.params as { id: string };
+  const q = req.query as { periodo?: string };
+  const hoy = new Date();
+  const periodo = q.periodo ?? `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+  const [anio, mes] = periodo.split('-').map(Number);
+  const desde = new Date(anio!, mes! - 1, 1);
+  const hasta = new Date(anio!, mes!, 0, 23, 59, 59, 999);
+  return { periodo, ...(await proveedores.calcularConsignacion(id, desde, hasta)) };
+});
+
+app.post('/api/proveedores/:id/liquidar', { preHandler: requierePermiso(PERMISO_PROV) }, async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const b = req.body as { periodo?: string; sucursalId?: string };
+  if (!b?.periodo || !b?.sucursalId) return reply.code(400).send({ error: 'Faltan período o sucursal.' });
+  try {
+    return await proveedores.liquidar({ proveedorId: id, periodo: b.periodo, sucursalId: b.sucursalId, usuarioId: req.usuario!.id });
+  } catch (e) {
+    if (e instanceof ErrorProveedor) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
+});
+
+app.post('/api/proveedores/:id/pagar', { preHandler: requierePermiso(PERMISO_PROV) }, async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const b = req.body as { monto?: number; sucursalId?: string };
+  if (b?.monto == null || !b?.sucursalId) return reply.code(400).send({ error: 'Faltan monto o sucursal.' });
+  try {
+    return await proveedores.pagar({ proveedorId: id, monto: b.monto, sucursalId: b.sucursalId, usuarioId: req.usuario!.id });
+  } catch (e) {
+    if (e instanceof ErrorProveedor) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
+});
+
+app.post('/api/remitos', { preHandler: requierePermiso(PERMISO_PROV) }, async (req, reply) => {
+  const b = req.body as Omit<import('./modules/proveedores/index.js').RecibirRemitoInput, 'usuarioId'>;
+  if (!b?.proveedorId || !b?.sucursalId || !Array.isArray(b.lineas)) {
+    return reply.code(400).send({ error: 'Faltan datos del remito.' });
+  }
+  try {
+    return reply.code(201).send(await proveedores.recibirRemito({ ...b, usuarioId: req.usuario!.id }));
+  } catch (e) {
+    if (e instanceof ErrorProveedor) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
 });
 
 // --- Facturación -----------------------------------------------------------

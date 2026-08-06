@@ -107,6 +107,21 @@ export interface LibroIvaDTO {
   totales: { neto: string; iva: string; total: string };
 }
 
+export interface ProveedorItemDTO {
+  id: string; razonSocial: string; cuit: string; condicionIva: string;
+  esConsignatario: boolean; marcas: string[]; saldo: string;
+}
+export interface ProveedorDetalleDTO extends ProveedorItemDTO {
+  movimientos: { id: string; monto: string; motivo: string; ocurridoEn: string }[];
+  remitos: { id: string; numero: string; fecha: string; total: string; lineas: number }[];
+  liquidaciones: { id: string; periodo: string; total: string; estado: string; fecha: string }[];
+}
+export interface ConsignacionDTO {
+  periodo: string; total: string;
+  lineas: { varianteId: string; producto: string; detalle: string; cantidadVendida: number; costoUnitario: string; montoALiquidar: string }[];
+  sinCosto: { varianteId: string; producto: string; cantidadVendida: number }[];
+}
+
 export interface MovimientoCajaDTO {
   id: string; tipo: string; medio: string; monto: string; fechaHora: string;
 }
@@ -180,6 +195,15 @@ export const api = {
     post<{ movimientoId: string }>('/api/caja/movimiento', body),
   cajaCerrar: (body: { sesionCajaId: string; sucursalId: string; totalContado: number; observaciones?: string }) =>
     post<ArqueoDTO>('/api/caja/cerrar', body),
+
+  // --- Proveedores ---
+  proveedores: () => get<ProveedorItemDTO[]>('/api/proveedores'),
+  proveedorDetalle: (id: string) => get<ProveedorDetalleDTO>(`/api/proveedores/${id}`),
+  consignacion: (id: string, periodo: string) => get<ConsignacionDTO>(`/api/proveedores/${id}/consignacion?periodo=${periodo}`),
+  liquidarConsignacion: (id: string, periodo: string, sucursalId: string) =>
+    post<{ liquidacionId: string; total: string; lineas: number; saldoProveedor: string }>(`/api/proveedores/${id}/liquidar`, { periodo, sucursalId }),
+  pagarProveedor: (id: string, monto: number, sucursalId: string) =>
+    post<{ saldo: string }>(`/api/proveedores/${id}/pagar`, { monto, sucursalId }),
 
   // --- Facturación ---
   comprobantes: (sucursalId: string) =>

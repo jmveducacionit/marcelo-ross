@@ -152,12 +152,30 @@ model PrecioVariante {
 
 // Ingresos, transferencias e inventario (modelos base; se detallan en Etapa 2).
 model Remito {
-  id          String   @id
-  proveedorId String
-  sucursalId  String
-  fecha       DateTime
-  estado      String
-  // líneas: (varianteId, cantidad, costoUnitario BigInt) -> IngresoStockLinea
+  id            String   @id
+  proveedorId   String
+  sucursalId    String
+  ordenCompraId String?
+  numero        String // el que trae el papel del proveedor
+  fecha         DateTime
+  estado        String // PENDIENTE | RECIBIDO
+  /// Money — suma de las líneas. Es lo que se le debe al proveedor por este remito.
+  total         BigInt   @default(0)
+
+  lineas LineaRemito[]
+
+  @@index([proveedorId, fecha])
+}
+
+model LineaRemito {
+  id         String @id
+  remitoId   String
+  varianteId String
+  cantidad   Int
+  /// Money — costo de compra, NO precio de venta. Snapshot de lo pactado.
+  costoUnitario BigInt
+
+  remito Remito @relation(fields: [remitoId], references: [id])
 }
 
 model Transferencia {
@@ -534,23 +552,88 @@ model OrdenCompra {
   id          String   @id
   proveedorId String
   temporadaId String?
+  numero      String
   fecha       DateTime
-  estado      String
-  // líneas: (varianteId | descripcion, cantidad, costoUnitario BigInt)
+  estado      String // ABIERTA | RECIBIDA_PARCIAL | CERRADA | ANULADA
+  /// Money — suma de las líneas pedidas.
+  total       BigInt   @default(0)
+
+  lineas LineaOrdenCompra[]
+
+  @@index([proveedorId, fecha])
+}
+
+model LineaOrdenCompra {
+  id            String  @id
+  ordenCompraId String
+  /// Puede pedirse algo que todavía no existe como variante (temporada nueva).
+  varianteId    String?
+  descripcion   String
+  cantidad      Int
+  /// Money — costo unitario pactado.
+  costoUnitario BigInt
+  /// Cuánto de esta línea ya llegó por remito.
+  recibido      Int     @default(0)
+
+  orden OrdenCompra @relation(fields: [ordenCompraId], references: [id])
 }
 
 model CuentaCorrienteProveedor {
   id          String    @id
   proveedorId String    @unique
-  saldo       BigInt // Money
+  /// Money — positivo = se le debe al proveedor.
+  saldo       BigInt
   proveedor   Proveedor @relation(fields: [proveedorId], references: [id])
+
+  movimientos MovimientoCuentaProveedor[]
+}
+
+/// Ledger de la cuenta corriente. Mismo criterio que MovimientoCredito: un saldo
+/// sin movimientos no se puede auditar ni discutir con el proveedor.
+model MovimientoCuentaProveedor {
+  id        String   @id
+  cuentaId  String
+  /// Money con signo: + lo que se le debe, − los pagos y las devoluciones.
+  monto     BigInt
+  motivo    String // RECEPCION_REMITO | LIQUIDACION_CONSIGNACION | PAGO | AJUSTE
+  remitoId       String?
+  liquidacionId  String?
+  usuarioId String
+  ocurridoEn DateTime @default(now())
+
+  cuenta CuentaCorrienteProveedor @relation(fields: [cuentaId], references: [id])
+
+  @@index([cuentaId, ocurridoEn])
 }
 
 model LiquidacionConsignacion {
-  id          String @id
+  id          String   @id
   proveedorId String
-  periodo     String
-  // líneas: (varianteId, cantidadVendida, montoALiquidar BigInt)
+  periodo     String // "2026-08"
+  desde       DateTime
+  hasta       DateTime
+  /// Money — total a liquidarle al proveedor por lo vendido de su consignación.
+  total       BigInt
+  estado      String   @default("EMITIDA") // EMITIDA | PAGADA
+  fecha       DateTime @default(now())
+  usuarioId   String
+
+  lineas LineaLiquidacion[]
+
+  @@unique([proveedorId, periodo])
+}
+
+model LineaLiquidacion {
+  id             String @id
+  liquidacionId  String
+  varianteId     String
+  cantidadVendida Int
+  /// Money — lo que se le paga al proveedor por unidad (el costo pactado).
+  costoUnitario  BigInt
+  /// Money — cantidadVendida × costoUnitario.
+  montoALiquidar BigInt
+
+  liquidacion LiquidacionConsignacion @relation(fields: [liquidacionId], references: [id])
 }
 
 // ===========================================================================

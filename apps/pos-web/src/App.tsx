@@ -12,6 +12,7 @@ import { EnConstruccion } from './pages/EnConstruccion';
 import { CajaPage } from './pages/CajaPage';
 import { DevolucionesPage } from './pages/DevolucionesPage';
 import { FacturacionPage } from './pages/FacturacionPage';
+import { ProveedoresPage } from './pages/ProveedoresPage';
 
 export function App() {
   const qc = useQueryClient();
@@ -37,7 +38,7 @@ export function App() {
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/facturacion" element={<FacturacionPage />} />
-          <Route path="/proveedores" element={<EnConstruccion titulo="Proveedores" icon="local_shipping" detalle="Órdenes de compra por temporada, recepción contra remito, cuenta corriente y liquidación de consignación." />} />
+          <Route path="/proveedores" element={<ProveedoresPage />} />
           <Route path="*" element={<Navigate to="/ventas" replace />} />
         </Route>
       </Routes>
