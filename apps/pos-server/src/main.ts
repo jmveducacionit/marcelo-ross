@@ -8,9 +8,9 @@ import fastifyStatic from '@fastify/static';
 import { prisma } from './db.js';
 import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
-import { ErrorDescuento, ventas, type ConfirmarVentaInput } from './modules/ventas/index.js';
+import { ErrorDescuento, ErrorDevolucion, ventas, type ConfirmarVentaInput, type RegistrarDevolucionInput } from './modules/ventas/index.js';
 import { kpis } from './services/dashboard.js';
-import { clientesListado, clienteDetalle } from './services/clientes.js';
+import { clientes } from './modules/clientes/index.js';
 import { stock } from './modules/stock/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
@@ -80,11 +80,11 @@ app.get('/api/contexto', { preHandler: requiereAuth }, async () => {
 
 app.get('/api/clientes', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { search?: string };
-  return clientesListado(q.search ?? '');
+  return clientes.listado(q.search ?? '');
 });
 app.get('/api/clientes/:id', { preHandler: requiereAuth }, async (req, reply) => {
   const { id } = req.params as { id: string };
-  const det = await clienteDetalle(id);
+  const det = await clientes.detalle(id);
   if (!det) return reply.code(404).send({ error: 'Cliente no encontrado.' });
   return det;
 });
@@ -124,6 +124,21 @@ app.post('/api/ventas', { preHandler: requierePermiso('ventas.cobrar') }, async 
   } catch (e) {
     // Un descuento vencido o sin autorización es error del pedido, no del servidor.
     if (e instanceof ErrorDescuento) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
+});
+
+// Devoluciones y cambios. Requiere permiso: no cualquiera devuelve plata.
+app.post('/api/devoluciones', { preHandler: requierePermiso('devoluciones.autorizar') }, async (req, reply) => {
+  const body = req.body as RegistrarDevolucionInput;
+  if (!body?.sucursalId || !body?.cajaId || !body?.resolucion) {
+    return reply.code(400).send({ error: 'Faltan datos de la devolución.' });
+  }
+  try {
+    const res = await ventas.devolver({ ...body, usuarioId: req.usuario!.id });
+    return reply.code(201).send(res);
+  } catch (e) {
+    if (e instanceof ErrorDevolucion) return reply.code(400).send({ error: e.message });
     throw e;
   }
 });

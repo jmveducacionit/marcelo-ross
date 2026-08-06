@@ -16,11 +16,12 @@
 import type { RegistroOperacion, Tx } from '../../shared/operacion.js';
 import { stockDetalle, stockListado } from './consultas.js';
 import {
-  ajustarStock, descontarPorVenta as descontarPorVentaImpl, ingresarStock, transferirStock,
-  type DescuentoPorVentaInput,
+  ajustarStock, descontarPorVenta as descontarPorVentaImpl, ingresarStock,
+  reingresarPorDevolucion as reingresarPorDevolucionImpl, transferirStock,
+  type DescuentoPorVentaInput, type ReingresoPorDevolucionInput,
 } from './movimientos.js';
 
-export type { DescuentoPorVentaInput, LineaADescontar } from './movimientos.js';
+export type { DescuentoPorVentaInput, LineaADescontar, ReingresoPorDevolucionInput } from './movimientos.js';
 
 // --- Tipos del contrato ------------------------------------------------------
 
@@ -118,3 +119,15 @@ export type DescontarPorVenta = (
 ) => Promise<void>;
 
 export const descontarPorVenta: DescontarPorVenta = descontarPorVentaImpl;
+
+/**
+ * Reingresa stock por una devolución, dentro de la transacción del llamador.
+ * Espejo de `descontarPorVenta`.
+ */
+export type ReingresarPorDevolucion = (
+  tx: Tx,
+  reg: RegistroOperacion,
+  input: ReingresoPorDevolucionInput,
+) => Promise<void>;
+
+export const reingresarPorDevolucion: ReingresarPorDevolucion = reingresarPorDevolucionImpl;

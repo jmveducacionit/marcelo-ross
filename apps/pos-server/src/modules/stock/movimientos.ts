@@ -88,6 +88,62 @@ export async function descontarPorVenta(tx: Tx, reg: RegistroOperacion, input: D
   }
 }
 
+export interface ReingresoPorDevolucionInput {
+  devolucionId: string;
+  sucursalId: string;
+  usuarioId: string;
+  ocurridoEn: Date;
+  lineas: LineaADescontar[];
+}
+
+/**
+ * Reingresa stock por una devolución, **dentro de la transacción del llamador**.
+ * Espejo de `descontarPorVenta`: misma razón para no abrir su propia transacción
+ * —registrar la devolución y devolver el stock son un solo hecho.
+ *
+ * La mercadería vuelve al stock vendible. Si estuviera fallada no debería
+ * reingresar, pero eso es una decisión de negocio que hoy no se modela: toda
+ * devolución vuelve a stock.
+ */
+export async function reingresarPorDevolucion(tx: Tx, reg: RegistroOperacion, input: ReingresoPorDevolucionInput): Promise<void> {
+  const varianteIds = [...new Set(input.lineas.map((l) => l.varianteId))];
+
+  const previos = await tx.stockPorSucursal.findMany({
+    where: { varianteId: { in: varianteIds }, sucursalId: input.sucursalId },
+    select: { varianteId: true, cantidad: true },
+  });
+  const previoDe = new Map(previos.map((s) => [s.varianteId, s.cantidad]));
+
+  for (const l of input.lineas) {
+    // upsert: una devolución sin ticket puede traer una variante que esta
+    // sucursal nunca tuvo en stock (comprada en la otra sucursal).
+    await tx.stockPorSucursal.upsert({
+      where: { varianteId_sucursalId: { varianteId: l.varianteId, sucursalId: input.sucursalId } },
+      update: { cantidad: { increment: l.cantidad } },
+      create: { id: nuevoUuid(), varianteId: l.varianteId, sucursalId: input.sucursalId, cantidad: l.cantidad },
+    });
+    await tx.movimientoStock.create({
+      data: {
+        id: nuevoUuid(), varianteId: l.varianteId, sucursalId: input.sucursalId,
+        tipo: 'DEVOLUCION', cantidad: l.cantidad, motivo: 'Devolución de cliente',
+        referenciaId: input.devolucionId, usuarioId: input.usuarioId, ocurridoEn: input.ocurridoEn,
+      },
+    });
+
+    reg.emitir({
+      tipo: 'StockIngresado',
+      meta: reg.meta({ ocurridoEn: input.ocurridoEn.toISOString() }),
+      payload: { varianteId: l.varianteId, cantidad: l.cantidad, motivo: 'DEVOLUCION', devolucionId: input.devolucionId },
+    });
+
+    const antes = previoDe.get(l.varianteId) ?? 0;
+    reg.auditar({
+      entidad: 'StockPorSucursal', entidadId: l.varianteId, accion: 'REINGRESO_POR_DEVOLUCION',
+      antes: { cantidad: antes }, despues: { cantidad: antes + l.cantidad },
+    });
+  }
+}
+
 /** Ingreso de mercadería: suma unidades (motivo INGRESO). Emite StockIngresado. */
 export async function ingresarStock(varianteId: string, sucursalId: string, cantidad: number, ctx: Ctx) {
   if (!Number.isInteger(cantidad) || cantidad <= 0) throw new Error('La cantidad a ingresar debe ser un entero positivo.');

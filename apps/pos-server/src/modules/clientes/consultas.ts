@@ -1,4 +1,4 @@
-import { prisma } from '../db.js';
+import { prisma } from '../../db.js';
 
 /** Lista de clientes (columna izquierda), con búsqueda por nombre. */
 export async function clientesListado(search: string) {

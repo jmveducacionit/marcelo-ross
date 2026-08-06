@@ -254,6 +254,7 @@ model Pago {
 model Devolucion {
   id            String   @id
   ventaOrigenId String?
+  clienteId     String? // necesario para CREDITO_A_FAVOR sin ticket
   sucursalId    String
   cajaId        String
   usuarioId     String
@@ -261,7 +262,24 @@ model Devolucion {
   conTicket     Boolean
   resolucion    String // NOTA_CREDITO | CREDITO_A_FAVOR | CAMBIO
   motivo        String?
-  // líneas: (varianteId, cantidad)
+  total         BigInt // Money — suma de las líneas devueltas
+
+  lineas LineaDevolucion[]
+}
+
+model LineaDevolucion {
+  id           String @id
+  devolucionId String
+  varianteId   String
+  cantidad     Int
+  /// Money — SNAPSHOT de lo que se le devuelve al cliente por unidad.
+  /// Con ticket sale del precio pagado en la venta original (que ya trae su
+  /// propio snapshot); sin ticket, del precio vigente. NUNCA una FK al precio.
+  precioUnitario BigInt
+  /// Línea de la venta original, cuando la devolución tiene ticket.
+  lineaVentaOrigenId String?
+
+  devolucion Devolucion @relation(fields: [devolucionId], references: [id])
 }
 
 // ===========================================================================
@@ -398,7 +416,26 @@ model CreditoCliente {
   clienteId String  @unique
   saldo     BigInt // Money
   cliente   Cliente @relation(fields: [clienteId], references: [id])
-  // movimientos: (+devolucion / -uso en venta)
+
+  movimientos MovimientoCredito[]
+}
+
+/// Ledger del crédito a favor. El saldo es el acumulado; acá está el porqué.
+/// Un saldo sin movimientos no se puede auditar ni explicar al cliente.
+model MovimientoCredito {
+  id               String   @id
+  creditoClienteId String
+  /// Money con signo: + por devolución, − al usarlo en una venta.
+  monto            BigInt
+  motivo           String // DEVOLUCION | USO_EN_VENTA | AJUSTE
+  devolucionId     String?
+  ventaId          String?
+  usuarioId        String
+  ocurridoEn       DateTime @default(now())
+
+  credito CreditoCliente @relation(fields: [creditoClienteId], references: [id])
+
+  @@index([creditoClienteId, ocurridoEn])
 }
 
 // ===========================================================================
