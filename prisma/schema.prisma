@@ -218,6 +218,7 @@ model LineaVenta {
 // Descuentos auditables a nivel línea (ADR-0004).
 model Descuento {
   id                   String              @id
+  nombre               String // lo que ve el cajero en pantalla
   tipo                 String // PORCENTAJE | MONTO_FIJO | COMBO | LIQUIDACION | EMPLEADO | PROMO_BANCARIA
   reglas               Json
   vigenciaDesde        DateTime?

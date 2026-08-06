@@ -106,9 +106,11 @@ async function limpiar() {
     prisma.sesion.deleteMany(),
     prisma.usuario.deleteMany(),
     prisma.movimientoStock.deleteMany(),
+    prisma.descuentoAplicado.deleteMany(),
     prisma.pago.deleteMany(),
     prisma.lineaVenta.deleteMany(),
     prisma.venta.deleteMany(),
+    prisma.descuento.deleteMany(),
     prisma.colaCae.deleteMany(),
     prisma.comprobante.deleteMany(),
     prisma.puntoVenta.deleteMany(),
@@ -299,6 +301,22 @@ async function main() {
   await prisma.precioVariante.createMany({ data: preciosData });
   await prisma.stockPorSucursal.createMany({ data: stockData });
   await prisma.movimientoStock.createMany({ data: movimientosData });
+
+  // --- Catálogo de descuentos (ADR-0004) --------------------------------------
+  // Conjunto CERRADO de tipos, con sus parámetros como datos. Los que tocan el
+  // margen fuerte requieren autorización de encargado.
+  await prisma.descuento.createMany({
+    data: [
+      { id: nuevoUuid(), nombre: 'Descuento 10%', tipo: 'PORCENTAJE', reglas: { porcentaje: 10 }, requiereAutorizacion: false },
+      { id: nuevoUuid(), nombre: 'Descuento 20%', tipo: 'PORCENTAJE', reglas: { porcentaje: 20 }, requiereAutorizacion: true },
+      { id: nuevoUuid(), nombre: 'Liquidación temporada 30%', tipo: 'LIQUIDACION', reglas: { porcentaje: 30 }, requiereAutorizacion: false },
+      { id: nuevoUuid(), nombre: 'Empleado 25%', tipo: 'EMPLEADO', reglas: { porcentaje: 25 }, requiereAutorizacion: true },
+      { id: nuevoUuid(), nombre: '3x2 en accesorios', tipo: 'COMBO', reglas: { lleva: 3, paga: 2 }, requiereAutorizacion: false },
+      { id: nuevoUuid(), nombre: 'Redondeo a favor $5.000', tipo: 'MONTO_FIJO', reglas: { monto: 500_000 }, requiereAutorizacion: true },
+      // Reintegro: NO baja lo que se cobra, se informa y se concilia aparte.
+      { id: nuevoUuid(), nombre: 'Reintegro banco 20% (tope $20.000)', tipo: 'PROMO_BANCARIA', reglas: { porcentaje: 20, tope: 2_000_000 }, requiereAutorizacion: false },
+    ],
+  });
 
   // --- Clientes + talles habituales -------------------------------------------
   const clientesDef = [

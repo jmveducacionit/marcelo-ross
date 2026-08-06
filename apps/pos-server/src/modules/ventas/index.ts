@@ -1,15 +1,43 @@
 /**
- * Módulo Ventas — API pública (puerto). Fase 1: contrato/andamiaje.
- * Todo lo demás dentro de este directorio es privado del módulo.
- * Estado: pendiente. Implementación en Etapa 3 del roadmap.
+ * Módulo Ventas — API pública (el "puerto"). ADR-0007 / ADR-0010.
+ *
+ * `confirmar.ts` y `descuentos.ts` son privados: nadie fuera de este directorio
+ * los importa.
+ *
+ * Ventas **no escribe stock**: se lo pide al módulo Stock por su puerto, dentro
+ * de la misma transacción, así vender y descontar son un solo commit. Tampoco
+ * emite comprobantes fiscales: eso es Facturación, que reacciona a
+ * `VentaConfirmada`.
+ *
+ * Operaciones todavía NO implementadas: devoluciones y cambios, entrega de
+ * prenda ajustada y anulación. No se declaran acá hasta existir — una firma que
+ * no hace nada desinforma más de lo que documenta.
  */
+import { confirmarVenta, type ConfirmarVentaInput } from './confirmar.js';
 
-// Contrato público del módulo. Las firmas se refinan al implementar.
-export interface VentasApi {
-  confirmarVenta(input: unknown): Promise<unknown>;
-  registrarDevolucion(input: unknown): Promise<unknown>;
-  entregarPrenda(input: unknown): Promise<unknown>;
-  anularVenta(input: unknown): Promise<unknown>;
+export type { ConfirmarVentaInput } from './confirmar.js';
+export { ErrorDescuento } from './descuentos.js';
+export type { TipoDescuento, DefinicionDescuento } from './descuentos.js';
+
+/** Resultado de confirmar una venta. Los montos van como string: son `Money`. */
+export interface VentaConfirmadaResultado {
+  ventaId: string;
+  subtotal: string;
+  totalDescuentos: string;
+  total: string;
+  /** Reintegros bancarios informados. NO están restados del total. */
+  reintegros: string[];
+  estadoEntrega: 'ENTREGADA' | 'PENDIENTE_AJUSTE';
 }
 
-export {};
+export interface VentasApi {
+  /**
+   * Confirma una venta de forma transaccional: snapshot de precios, descuentos,
+   * descuento de stock por el puerto de Stock, evento y auditoría.
+   */
+  confirmar(input: ConfirmarVentaInput): Promise<VentaConfirmadaResultado>;
+}
+
+export const ventas: VentasApi = {
+  confirmar: confirmarVenta as VentasApi['confirmar'],
+};

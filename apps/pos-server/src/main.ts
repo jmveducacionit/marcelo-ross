@@ -8,7 +8,7 @@ import fastifyStatic from '@fastify/static';
 import { prisma } from './db.js';
 import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
-import { confirmarVenta } from './services/ventas.js';
+import { ErrorDescuento, ventas, type ConfirmarVentaInput } from './modules/ventas/index.js';
 import { kpis } from './services/dashboard.js';
 import { clientesListado, clienteDetalle } from './services/clientes.js';
 import { stock } from './modules/stock/index.js';
@@ -95,26 +95,48 @@ app.get('/api/productos', { preHandler: requiereAuth }, async (req) => {
   return buscarProductos(q.sucursalId, q.search ?? '');
 });
 
+// Catálogo de descuentos vigentes (ADR-0004). Son datos, no código.
+app.get('/api/descuentos', { preHandler: requiereAuth }, async () => {
+  const ahora = new Date();
+  const filas = await prisma.descuento.findMany({ orderBy: { nombre: 'asc' } });
+  return filas
+    .filter((d) => (!d.vigenciaDesde || d.vigenciaDesde <= ahora) && (!d.vigenciaHasta || d.vigenciaHasta >= ahora))
+    .map((d) => ({
+      id: d.id, nombre: d.nombre, tipo: d.tipo,
+      requiereAutorizacion: d.requiereAutorizacion,
+      // El reintegro bancario no baja el total: el front lo muestra distinto.
+      esReintegro: d.tipo === 'PROMO_BANCARIA',
+      // COMBO va por línea; el resto puede ir por línea o por ticket.
+      soloLinea: d.tipo === 'COMBO',
+    }));
+});
+
 // Confirmar venta: requiere permiso de cobro. El vendedor sale de la SESIÓN
 // (no se confía en el cliente).
 app.post('/api/ventas', { preHandler: requierePermiso('ventas.cobrar') }, async (req, reply) => {
-  const body = req.body as Parameters<typeof confirmarVenta>[0];
+  const body = req.body as ConfirmarVentaInput;
   if (!body?.sucursalId || !body?.cajaId || !Array.isArray(body.lineas) || body.lineas.length === 0) {
     return reply.code(400).send({ error: 'Faltan datos de la venta o no hay líneas.' });
   }
-  const res = await confirmarVenta({ ...body, vendedorId: req.usuario!.id, pagos: body.pagos ?? [] });
-  return reply.code(201).send(res);
+  try {
+    const res = await ventas.confirmar({ ...body, vendedorId: req.usuario!.id, pagos: body.pagos ?? [] });
+    return reply.code(201).send(res);
+  } catch (e) {
+    // Un descuento vencido o sin autorización es error del pedido, no del servidor.
+    if (e instanceof ErrorDescuento) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
 });
 
 app.get('/api/ventas', { preHandler: requiereAuth }, async (req) => {
   const q = req.query as { sucursalId?: string };
-  const ventas = await prisma.venta.findMany({
+  const registros = await prisma.venta.findMany({
     where: q.sucursalId ? { sucursalId: q.sucursalId } : {},
     orderBy: { fechaHora: 'desc' },
     take: 15,
     include: { lineas: true, pagos: true, cliente: true },
   });
-  return ventas.map((v) => ({
+  return registros.map((v) => ({
     id: v.id, fechaHora: v.fechaHora, total: v.total.toString(), estadoEntrega: v.estadoEntrega,
     items: v.lineas.reduce((n, l) => n + l.cantidad, 0),
     cliente: v.cliente?.nombre ?? 'Consumidor Final',
