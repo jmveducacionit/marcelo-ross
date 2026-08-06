@@ -6,13 +6,13 @@ código. No es que uno derive del otro: **los dos tienen la misma historia hasta
 
 | Repo | Qué es | Despliegue |
 |---|---|---|
-| `marcelo-ross` (**este**) | La **vitrina en la nube** | Netlify + Render + Supabase |
-| `marcelo-ross-instalable` | El **producto**: instalación local por sucursal | `SetupPOS-*.exe` |
+| `marcelo-ross` (**este**) | El **producto**: instalación local por sucursal | `SetupPOS-*.exe` |
+| `marcelo-ross-cloud` | La **vitrina en la nube** | Netlify + Render + Supabase |
 
-> **Este repo no es el producto.** El producto es la instalación local
-> offline-first: la venta no se frena por falta de internet y cada sucursal es
-> dueña de su stock (ADR-0001). La versión en la nube contradice ese diseño a
-> propósito, para poder mostrar el sistema desde un link.
+> **Este repo es el producto.** Instalación local offline-first: la venta no se
+> frena por falta de internet y cada sucursal es dueña de su stock (ADR-0001).
+> La versión en la nube contradice ese diseño a propósito, para poder mostrar el
+> sistema desde un link — pero no es lo que se instala en un comercio.
 
 ## Punto de separación
 
@@ -36,7 +36,7 @@ Antes de tocar código compartido, leé `DIVERGENCIA.md`. Para traer cambios del
 otro repo:
 
 ```bash
-node scripts/sincronizar.mjs "../marcelo-ross-instalable"
+node scripts/sincronizar.mjs "../marcelo-ross-cloud"
 ```
 
 El criterio para saber si algo divergió: **los 43 tests tienen que pasar igual

@@ -18,12 +18,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Runtime: el POOLER de Supabase (6543, pgbouncer). Con la conexión directa,
-  // Prisma agota el límite de conexiones de un host chico enseguida.
-  url       = env("DATABASE_URL")
-  // Migraciones: conexión DIRECTA (5432). El pooler en modo transacción no
-  // soporta las sentencias que emite `migrate deploy`.
-  directUrl = env("DIRECT_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ===========================================================================

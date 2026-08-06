@@ -1,11 +1,9 @@
-# CLAUDE.md — Memoria del proyecto (versión NUBE)
+# CLAUDE.md — Memoria del proyecto (INSTALABLE)
 
-> ⚠️ **Este es el repo de la VITRINA en la nube**, derivado del repo del
-> instalable. Comparte casi todo el código con él. Antes de tocar dominio, leé
-> `ORIGEN.md` y `DIVERGENCIA.md`: un arreglo hecho acá **no llega al otro repo
-> solo**. El producto real es la instalación local offline-first.
->
-> Despliegue: Netlify (front) + Render (servidor) + Supabase (base).
+> Este es el repo del **producto**: la instalación local offline-first por
+> sucursal. Hay un repo hermano (`marcelo-ross-cloud`) con la vitrina en la nube que
+> comparte casi todo el código. Antes de tocar dominio, leé `ORIGEN.md` y
+> `DIVERGENCIA.md`: un arreglo hecho acá **no llega al otro repo solo**.
 
 > Este archivo es la **memoria persistente entre sesiones**. Si volvés a este
 > repo sin contexto, leé esto primero. Está escrito para vos (Claude) y para
@@ -152,11 +150,7 @@ pnpm db:studio            # Prisma Studio (inspeccionar la base)
 pnpm db:migrate           # crear migración (prisma migrate dev)
 ```
 
-> **Base de datos**: en este repo NO hay Postgres embebido. Apuntá
-> `DATABASE_URL` a Supabase o a un Postgres propio. (En el repo del
-> instalable sí hay embebido.) El texto de abajo es del repo de origen:
->
-> ~~**Base de datos en dev**: NO se usa Docker. Es un **Postgres embebido**~~
+> **Base de datos en dev**: NO se usa Docker. Es un **Postgres embebido**
 > (`embedded-postgres`) levantado por `scripts/dev-db.mjs`, en el **puerto 54329**
 > (el 5432 de esta máquina ya está ocupado), persistido en `.dev-db/`. El
 > `DATABASE_URL` de `.env` apunta a 54329. `docker-compose.yml` queda como
