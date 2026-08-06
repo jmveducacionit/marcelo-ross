@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build:app": "node scripts/build-app.mjs",
+    "build:instalador": "node scripts/build-instalador.mjs",
     "typecheck": "tsc -b",
     "dev:db": "node scripts/dev-db.mjs",
     "dev:server": "pnpm --filter @pos/pos-server dev",
