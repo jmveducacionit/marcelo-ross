@@ -1,9 +1,9 @@
 {
-  "name": "marcelo-ross-pos",
+  "name": "marcelo-ross-cloud",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Sistema POS multi-sucursal offline-first para Marcelo Ross Hombre",
+  "description": "POS Marcelo Ross — despliegue en la nube (vitrina). Netlify + Render + Supabase.",
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20"
@@ -11,19 +11,18 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:app": "node scripts/build-app.mjs",
-    "build:instalador": "node scripts/build-instalador.mjs",
     "typecheck": "tsc -b",
-    "dev:db": "node scripts/dev-db.mjs",
     "dev:server": "pnpm --filter @pos/pos-server dev",
     "dev:web": "pnpm --filter @pos/pos-web dev",
-    "setup": "prisma migrate deploy && prisma db seed",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "build:web": "pnpm --filter @pos/pos-web build",
+    "deploy:migrate": "prisma migrate deploy",
+    "start:server": "pnpm --filter @pos/pos-server start"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -31,8 +30,7 @@
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
     "@pos/core-domain": "workspace:*",
-    "@prisma/client": "^6.2.1",
-    "embedded-postgres": "18.4.0-beta.17"
+    "@prisma/client": "^6.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
@@ -46,12 +44,7 @@
     "onlyBuiltDependencies": [
       "@prisma/client",
       "prisma",
-      "esbuild",
-      "embedded-postgres",
-      "@embedded-postgres/windows-x64",
-      "@embedded-postgres/linux-x64",
-      "@embedded-postgres/darwin-x64",
-      "@embedded-postgres/darwin-arm64"
+      "esbuild"
     ]
   }
 }

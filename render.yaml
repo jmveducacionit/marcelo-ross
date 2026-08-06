@@ -1,0 +1,33 @@
+# Despliegue del pos-server en Render.
+#
+# El servidor es un proceso Fastify con estado (bus de eventos in-process y
+# workers de la cola de CAE), así que necesita un host SIEMPRE ENCENDIDO. Por eso
+# no va en Netlify Functions: son efímeras y los listeners in-process no
+# sobreviven entre invocaciones.
+#
+# El plan free de Render duerme el servicio tras 15 minutos sin tráfico: el
+# primer request después despierta y tarda ~30 s. Para una vitrina alcanza; para
+# operar, no.
+services:
+  - type: web
+    name: pos-server
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm db:generate && pnpm deploy:migrate
+    startCommand: pnpm start:server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Supabase: usar el POOLER (puerto 6543) con pgbouncer=true. La conexión
+      # directa al 5432 se agota enseguida con Prisma en un host chico.
+      - key: DATABASE_URL
+        sync: false
+      # Render inyecta PORT; el servidor tiene que escuchar en 0.0.0.0 o el
+      # health check no lo alcanza.
+      - key: POS_HOST
+        value: 0.0.0.0
+      # Origen del front en Netlify, para CORS con credenciales.
+      - key: POS_ORIGEN_WEB
+        sync: false

@@ -24,7 +24,13 @@ import { permisosDe } from './auth/permisos.js';
 (BigInt.prototype as any).toJSON = function () { return this.toString(); };
 
 const app = Fastify({ logger: false });
-await app.register(cors, { origin: true, credentials: true });
+
+// En la nube el front vive en Netlify y la API en Render. El proxy de Netlify
+// hace que el navegador los vea en el mismo origen, así que CORS casi no entra
+// en juego; POS_ORIGEN_WEB queda para llamadas directas a la API (pruebas,
+// health checks externos).
+const ORIGEN_WEB = process.env.POS_ORIGEN_WEB;
+await app.register(cors, { origin: ORIGEN_WEB ? [ORIGEN_WEB] : true, credentials: true });
 await app.register(cookie);
 
 // Consumidor in-process de ejemplo: loguea cada evento publicado (post-commit).
@@ -59,7 +65,11 @@ app.post('/api/auth/login', async (req, reply) => {
     });
     reply.setCookie(COOKIE_SESION, token, {
       httpOnly: true, sameSite: 'lax', path: '/', maxAge: TTL_SESION_SEG,
-      // secure: true en producción (HTTPS). En LAN http queda false.
+      // En la nube todo es HTTPS: la cookie va `secure`. Se mantiene SameSite=Lax
+      // porque el proxy de Netlify deja front y API en el mismo origen — ver
+      // netlify.toml. Sin ese proxy habría que pasar a None+secure y sumar un
+      // token CSRF (ADR-0009).
+      secure: process.env.NODE_ENV === 'production',
     });
     return { usuario: { ...usuario, permisos: permisosDe(usuario.rol) } };
   } catch (e) {
@@ -412,11 +422,10 @@ app.post('/api/stock/transferencia', { preHandler: requierePermiso('stock.transf
   catch (e) { return reply.code(400).send({ error: (e as Error).message }); }
 });
 
-// --- Front estático (solo en la instalación empaquetada) --------------------
-// En desarrollo el front lo sirve Vite en :5173 y llega acá por su proxy. En la
-// instalación no hay Vite: un único proceso sirve la API y la SPA en el mismo
-// puerto, que es lo que permite dejar un solo servicio corriendo en el mini-PC.
-// Si el directorio no existe (caso desarrollo), no se registra nada.
+// --- Front estático ---------------------------------------------------------
+// En este despliegue el front lo sirve Netlify, no este proceso. El bloque se
+// conserva para desarrollo local (donde tampoco se activa, porque el directorio
+// no existe y lo sirve Vite).
 const WEB_DIR = process.env.POS_WEB_DIR
   ?? resolve(dirname(fileURLToPath(import.meta.url)), 'web');
 
