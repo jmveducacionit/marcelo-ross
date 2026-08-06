@@ -76,6 +76,19 @@ export interface PreviewDTO {
   porLinea: string[];
 }
 
+export interface LineaVentaDetalleDTO {
+  lineaId: string; varianteId: string; producto: string; marca: string;
+  talle: string; color: string; cantidad: number; devuelto: number;
+  disponible: number; precioUnitario: string; subtotalLinea: string;
+}
+export interface VentaDetalleDTO {
+  id: string; fechaHora: string; sucursalId: string; cajaId: string;
+  estadoEntrega: string; subtotal: string; totalDescuentos: string; total: string;
+  cliente: { id: string; nombre: string } | null;
+  pagos: { medio: string; monto: string }[];
+  lineas: LineaVentaDetalleDTO[];
+}
+
 export interface MovimientoCajaDTO {
   id: string; tipo: string; medio: string; monto: string; fechaHora: string;
 }
@@ -131,6 +144,7 @@ export const api = {
   productos: (sucursalId: string, search: string) =>
     get<ProductoDTO[]>(`/api/productos?sucursalId=${sucursalId}&search=${encodeURIComponent(search)}`),
   ventas: (sucursalId: string) => get<VentaDTO[]>(`/api/ventas?sucursalId=${sucursalId}`),
+  ventaDetalle: (id: string) => get<VentaDetalleDTO>(`/api/ventas/${id}`),
   actividad: (sucursalId: string) => get<ActividadDTO[]>(`/api/actividad?sucursalId=${sucursalId}`),
   dashboard: () => get<DashboardDTO>('/api/dashboard'),
   stock: (sucursalId: string, search: string) => get<StockItemDTO[]>(`/api/stock?sucursalId=${sucursalId}&search=${encodeURIComponent(search)}`),

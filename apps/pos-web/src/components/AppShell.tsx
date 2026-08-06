@@ -11,6 +11,7 @@ const NAV: { to: string; icon: string; label: string; permiso?: string }[] = [
   { to: '/ventas', icon: 'shopping_cart', label: 'Ventas' },
   { to: '/stock', icon: 'inventory_2', label: 'Stock' },
   { to: '/caja', icon: 'account_balance_wallet', label: 'Control de Caja', permiso: 'caja.operar' },
+  { to: '/devoluciones', icon: 'assignment_return', label: 'Devoluciones' },
   { to: '/empleados', icon: 'badge', label: 'Empleados', permiso: 'usuarios.gestionar' },
   { to: '/clientes', icon: 'group', label: 'Clientes' },
   { to: '/dashboard', icon: 'dashboard', label: 'Dashboard', permiso: 'reportes.ver' },

@@ -10,7 +10,7 @@ import { bus } from './shared/bus.js';
 import { buscarProductos } from './services/catalogo.js';
 import { ErrorDescuento, ErrorDevolucion, ventas, type ConfirmarVentaInput, type RegistrarDevolucionInput } from './modules/ventas/index.js';
 import { kpis } from './services/dashboard.js';
-import { clientes } from './modules/clientes/index.js';
+import { ErrorCredito, clientes } from './modules/clientes/index.js';
 import { stock } from './modules/stock/index.js';
 import { ErrorCaja, caja } from './modules/caja/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
@@ -136,9 +136,18 @@ app.post('/api/ventas', { preHandler: requierePermiso('ventas.cobrar') }, async 
     return reply.code(201).send(res);
   } catch (e) {
     // Un descuento vencido o sin autorización es error del pedido, no del servidor.
-    if (e instanceof ErrorDescuento || e instanceof ErrorCaja) return reply.code(400).send({ error: e.message });
+    if (e instanceof ErrorDescuento || e instanceof ErrorCaja || e instanceof ErrorCredito) {
+      return reply.code(400).send({ error: e.message });
+    }
     throw e;
   }
+});
+
+app.get('/api/ventas/:id', { preHandler: requiereAuth }, async (req, reply) => {
+  const { id } = req.params as { id: string };
+  const det = await ventas.detalle(id);
+  if (!det) return reply.code(404).send({ error: 'Venta no encontrada.' });
+  return det;
 });
 
 // Devoluciones y cambios. Requiere permiso: no cualquiera devuelve plata.

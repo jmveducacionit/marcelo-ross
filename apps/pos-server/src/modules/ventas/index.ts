@@ -9,11 +9,11 @@
  * emite comprobantes fiscales: eso es Facturación, que reacciona a
  * `VentaConfirmada`.
  *
- * Operaciones todavía NO implementadas: entrega de la prenda ajustada, anulación
- * de venta, y el CONSUMO del crédito a favor (hoy se genera en la devolución
- * pero no se puede gastar). No se declaran acá hasta existir — una firma que no
- * hace nada desinforma más de lo que documenta.
+ * Operaciones todavía NO implementadas: entrega de la prenda ajustada y
+ * anulación de venta. No se declaran acá hasta existir — una firma que no hace
+ * nada desinforma más de lo que documenta.
  */
+import { ventaDetalle } from './consultas.js';
 import { confirmarVenta, type ConfirmarVentaInput } from './confirmar.js';
 import { registrarDevolucion, type RegistrarDevolucionInput } from './devoluciones.js';
 import { previsualizarVenta, type PreviewVentaInput, type PreviewVentaResultado } from './preview.js';
@@ -62,10 +62,13 @@ export interface VentasApi {
    * tenga que reimplementar la aritmética de dinero.
    */
   previsualizar(input: PreviewVentaInput): Promise<PreviewVentaResultado>;
+  /** Detalle de una venta con lo ya devuelto por línea. `null` si no existe. */
+  detalle(ventaId: string): ReturnType<typeof ventaDetalle>;
 }
 
 export const ventas: VentasApi = {
   confirmar: confirmarVenta as VentasApi['confirmar'],
   devolver: registrarDevolucion as VentasApi['devolver'],
   previsualizar: previsualizarVenta,
+  detalle: ventaDetalle,
 };

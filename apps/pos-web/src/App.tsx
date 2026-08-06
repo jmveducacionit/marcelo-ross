@@ -10,6 +10,7 @@ import { StockPage } from './pages/StockPage';
 import { ClientesPage } from './pages/ClientesPage';
 import { EnConstruccion } from './pages/EnConstruccion';
 import { CajaPage } from './pages/CajaPage';
+import { DevolucionesPage } from './pages/DevolucionesPage';
 
 export function App() {
   const qc = useQueryClient();
@@ -30,6 +31,7 @@ export function App() {
           <Route path="/ventas" element={<VentasPage />} />
           <Route path="/stock" element={<StockPage />} />
           <Route path="/caja" element={<CajaPage />} />
+          <Route path="/devoluciones" element={<DevolucionesPage />} />
           <Route path="/empleados" element={<EnConstruccion titulo="Empleados" icon="badge" detalle="Auth y roles ya implementados. Faltan comisiones, turnos y ranking, más la gestión de usuarios por UI." />} />
           <Route path="/clientes" element={<ClientesPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />

@@ -9,7 +9,7 @@
  * Como el descuento de stock, estas operaciones participan en la transacción de
  * quien las dispara: la devolución y el crédito que genera son un solo hecho.
  */
-import { CERO, money, nuevoUuid, sumar, type Money } from '@pos/core-domain';
+import { CERO, money, nuevoUuid, restar, sumar, type Money } from '@pos/core-domain';
 import type { RegistroOperacion, Tx } from '../../shared/operacion.js';
 
 export interface AcreditarInput {
@@ -18,6 +18,63 @@ export interface AcreditarInput {
   devolucionId: string;
   usuarioId: string;
   ocurridoEn: Date;
+}
+
+export interface ConsumirInput {
+  clienteId: string;
+  monto: Money;
+  ventaId: string;
+  usuarioId: string;
+  ocurridoEn: Date;
+}
+
+export class ErrorCredito extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = 'ErrorCredito';
+  }
+}
+
+/**
+ * Gasta crédito a favor en una venta. Devuelve el saldo restante.
+ *
+ * Falla si el saldo no alcanza en vez de gastar lo que hay: usar "hasta donde
+ * llegue" dejaría la venta cobrada de menos sin que nadie se entere. Quien llama
+ * tiene que topear el monto antes.
+ */
+export async function consumirCredito(tx: Tx, reg: RegistroOperacion, input: ConsumirInput): Promise<Money> {
+  if (input.monto <= CERO) {
+    throw new ErrorCredito('El crédito a usar tiene que ser un monto positivo.');
+  }
+
+  const cuenta = await tx.creditoCliente.findUnique({ where: { clienteId: input.clienteId } });
+  const saldoAnterior = money(cuenta?.saldo ?? 0n);
+  if (!cuenta || saldoAnterior < input.monto) {
+    throw new ErrorCredito(
+      `El cliente no tiene crédito suficiente: hay ${saldoAnterior.toString()} centavos y se intenta usar ${input.monto.toString()}.`,
+    );
+  }
+
+  const saldoNuevo = restar(saldoAnterior, input.monto);
+  await tx.creditoCliente.update({ where: { id: cuenta.id }, data: { saldo: saldoNuevo } });
+
+  await tx.movimientoCredito.create({
+    data: {
+      id: nuevoUuid(), creditoClienteId: cuenta.id,
+      // Negativo: el ledger tiene que poder sumarse y dar el saldo.
+      monto: -input.monto,
+      motivo: 'USO_EN_VENTA', ventaId: input.ventaId,
+      usuarioId: input.usuarioId, ocurridoEn: input.ocurridoEn,
+    },
+  });
+
+  reg.auditar({
+    entidad: 'CreditoCliente', entidadId: input.clienteId, accion: 'USAR_CREDITO_EN_VENTA',
+    antes: { saldo: saldoAnterior.toString() },
+    despues: { saldo: saldoNuevo.toString(), ventaId: input.ventaId },
+  });
+
+  return saldoNuevo;
 }
 
 /** Suma crédito a un cliente por una devolución. Crea la cuenta si no existía. */

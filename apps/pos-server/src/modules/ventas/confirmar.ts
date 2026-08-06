@@ -1,5 +1,6 @@
 import { CERO, money, multiplicarPorCantidad, nuevoUuid, restar, sumar, type Money } from '@pos/core-domain';
 import { registrarCobros } from '../caja/index.js';
+import { consumirCredito } from '../clientes/index.js';
 import { descontarPorVenta } from '../stock/index.js';
 import { operacionDeDominio } from '../../shared/operacion.js';
 import { calcularDescuentos, type DefinicionDescuento, type DescuentoPedido } from './descuentos.js';
@@ -14,6 +15,8 @@ export interface ConfirmarVentaInput {
   pagos: Array<{ medio: string; monto: number }>; // monto en centavos
   /** Descuentos pedidos por el cajero. Ver ADR-0004. */
   descuentos?: Array<{ descuentoId: string; indiceLinea?: number; autorizadoPor?: string }>;
+  /** Crédito a favor a usar, en centavos. Exige clienteId. */
+  usarCredito?: number;
 }
 
 /**
@@ -88,13 +91,34 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
     const totalDescuentos = descuentos.totalDescuentos;
     const total = restar(subtotal, totalDescuentos);
 
-    // 3. Pagos (si no vienen, un EFECTIVO por el total).
-    const pagos =
-      input.pagos.length > 0
-        ? input.pagos.map((p) => ({ id: nuevoUuid(), medio: p.medio, monto: BigInt(Math.round(p.monto)) }))
-        : [{ id: nuevoUuid(), medio: 'EFECTIVO', monto: total }];
+    // 3. Crédito a favor, si el cliente lo usa. Se consume ANTES de armar los
+    //    pagos porque cubre parte del total y el resto se cobra por otro medio.
+    //    Va como un Pago con medio propio: así la caja lo totaliza aparte y no
+    //    lo cuenta como efectivo en el cajón, que es lo que realmente pasa.
+    let creditoUsado: Money = CERO;
+    if (input.usarCredito && input.usarCredito > 0) {
+      if (!input.clienteId) {
+        throw new Error('Para usar crédito a favor hay que identificar al cliente.');
+      }
+      // Se topea al total: nadie puede llevarse cambio de un crédito a favor.
+      const pedido = money(BigInt(Math.round(input.usarCredito)));
+      creditoUsado = pedido > total ? total : pedido;
+      await consumirCredito(tx, reg, {
+        clienteId: input.clienteId, monto: creditoUsado, ventaId, usuarioId: input.vendedorId, ocurridoEn,
+      });
+    }
 
-    // 3. Crear la venta con sus líneas y pagos.
+    const aCobrar = restar(total, creditoUsado);
+    const pagosDelCliente =
+      input.pagos.length > 0
+        ? input.pagos.map((p) => ({ id: nuevoUuid(), medio: p.medio, monto: money(BigInt(Math.round(p.monto))) }))
+        : (aCobrar > CERO ? [{ id: nuevoUuid(), medio: 'EFECTIVO', monto: aCobrar }] : []);
+    const pagos = [
+      ...(creditoUsado > CERO ? [{ id: nuevoUuid(), medio: 'CREDITO_A_FAVOR', monto: creditoUsado }] : []),
+      ...pagosDelCliente,
+    ];
+
+    // 4. Crear la venta con sus líneas y pagos.
     await tx.venta.create({
       data: {
         id: ventaId,
@@ -134,7 +158,7 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
       pagos: pagos.map((p) => ({ medio: p.medio, monto: money(p.monto) })),
     });
 
-    // 5. Descontar stock: se lo pedimos a Stock, que es su dueño (ADR-0007).
+    // 6. Descontar stock: se lo pedimos a Stock, que es su dueño (ADR-0007).
     //    Va en ESTA transacción, así vender y descontar son un solo commit.
     await descontarPorVenta(tx, reg, {
       ventaId,
@@ -144,7 +168,7 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
       lineas: lineasData.map((l) => ({ varianteId: l.varianteId, cantidad: l.cantidad })),
     });
 
-    // 6. Evento de dominio -> Outbox (misma tx, lo escribe el envoltorio).
+    // 7. Evento de dominio -> Outbox (misma tx, lo escribe el envoltorio).
     reg.emitir({
       tipo: 'VentaConfirmada',
       meta: reg.meta({ ocurridoEn: ocurridoEn.toISOString() }),
@@ -164,7 +188,7 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
       },
     });
 
-    // 7. Auditoría (misma tx, obligatoria: sin esto la operación se revierte).
+    // 8. Auditoría (misma tx, obligatoria: sin esto la operación se revierte).
     reg.auditar({
       entidad: 'Venta', entidadId: ventaId, accion: 'CONFIRMAR_VENTA',
       despues: {
@@ -179,6 +203,7 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
       subtotal: subtotal.toString(),
       totalDescuentos: totalDescuentos.toString(),
       total: total.toString(),
+      creditoUsado: creditoUsado.toString(),
       reintegros: (descuentos as { reintegros?: Array<{ monto: Money }> }).reintegros?.map((r) => r.monto.toString()) ?? [],
       estadoEntrega: algunAjuste ? 'PENDIENTE_AJUSTE' : 'ENTREGADA',
     };
