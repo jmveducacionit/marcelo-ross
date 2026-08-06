@@ -104,8 +104,14 @@ async function limpiar() {
   // Orden inverso a las dependencias (para re-ejecutar el seed).
   await prisma.$transaction([
     prisma.sesion.deleteMany(),
+    prisma.arqueo.deleteMany(),
+    prisma.movimientoCaja.deleteMany(),
+    prisma.sesionCaja.deleteMany(),
+    prisma.turno.deleteMany(),
     prisma.usuario.deleteMany(),
     prisma.movimientoStock.deleteMany(),
+    prisma.lineaDevolucion.deleteMany(),
+    prisma.devolucion.deleteMany(),
     prisma.descuentoAplicado.deleteMany(),
     prisma.pago.deleteMany(),
     prisma.lineaVenta.deleteMany(),
@@ -115,6 +121,7 @@ async function limpiar() {
     prisma.comprobante.deleteMany(),
     prisma.puntoVenta.deleteMany(),
     prisma.talleHabitual.deleteMany(),
+    prisma.movimientoCredito.deleteMany(),
     prisma.creditoCliente.deleteMany(),
     prisma.cliente.deleteMany(),
     prisma.precioVariante.deleteMany(),
@@ -360,8 +367,23 @@ async function main() {
   });
   const ptoVentaPrincipalId = puntosVenta[0]!;
 
+  // --- Turno y caja abierta ---------------------------------------------------
+  // La instalación tiene que quedar LISTA PARA VENDER: sin una caja abierta, la
+  // primera venta de la demo fallaría (un cobro fuera de sesión no entra en
+  // ningún arqueo). Se abre la primera caja de la sucursal principal.
+  const cajasPrincipal = await prisma.caja.findMany({ where: { sucursalId: sucursalPrincipalId }, orderBy: { nombre: 'asc' } });
+  const turnoId = nuevoUuid();
+  await prisma.turno.create({ data: { id: turnoId, sucursalId: sucursalPrincipalId, fechaApertura: new Date() } });
+  const sesionCajaId = nuevoUuid();
+  const cajaAbierta = cajasPrincipal[0]!;
+  await prisma.sesionCaja.create({
+    data: {
+      id: sesionCajaId, cajaId: cajaAbierta.id, sucursalId: sucursalPrincipalId, turnoId,
+      usuarioId: cajeroId, fondoInicial: desdePesos(50_000), estado: 'ABIERTA',
+    },
+  });
+
   // --- Ventas de ejemplo (pagos mixtos, movimientos, comprobante PENDIENTE) ----
-  const cajasPrincipal = await prisma.caja.findMany({ where: { sucursalId: sucursalPrincipalId } });
   const clientes = await prisma.cliente.findMany();
   const disponiblesPrincipal = variantesParaVenta.filter((x) => x.sucursalId === sucursalPrincipalId);
   const IVA = 21;
@@ -413,6 +435,15 @@ async function main() {
       },
     });
     await prisma.movimientoStock.createMany({ data: movs });
+
+    // El cobro entra a la caja abierta: sin esto el arqueo daría solo el fondo.
+    const pagosDeVenta = await prisma.pago.findMany({ where: { ventaId } });
+    await prisma.movimientoCaja.createMany({
+      data: pagosDeVenta.map((pg) => ({
+        id: nuevoUuid(), sesionCajaId, tipo: 'VENTA', medio: pg.medio, monto: pg.monto,
+        referenciaId: ventaId, usuarioId: cajeroId, fechaHora: new Date(),
+      })),
+    });
 
     // Comprobante fiscal en cola de CAE (offline-first: PENDIENTE)
     const esFacturaA = cliente?.condicionIva === 'Responsable Inscripto';

@@ -1,4 +1,5 @@
 import { CERO, money, multiplicarPorCantidad, nuevoUuid, restar, sumar, type Money } from '@pos/core-domain';
+import { registrarCobros } from '../caja/index.js';
 import { descontarPorVenta } from '../stock/index.js';
 import { operacionDeDominio } from '../../shared/operacion.js';
 import { calcularDescuentos, type DefinicionDescuento, type DescuentoPedido } from './descuentos.js';
@@ -125,6 +126,13 @@ export async function confirmarVenta(input: ConfirmarVentaInput) {
         })),
       });
     }
+
+    // Cobros -> Caja, en esta misma transacción. Falla si no hay caja abierta:
+    // un cobro fuera de sesión no aparece en ningún arqueo.
+    await registrarCobros(tx, reg, {
+      ventaId, cajaId: input.cajaId, usuarioId: input.vendedorId, ocurridoEn,
+      pagos: pagos.map((p) => ({ medio: p.medio, monto: money(p.monto) })),
+    });
 
     // 5. Descontar stock: se lo pedimos a Stock, que es su dueño (ADR-0007).
     //    Va en ESTA transacción, así vender y descontar son un solo commit.

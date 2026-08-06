@@ -296,6 +296,7 @@ model Turno {
 model SesionCaja {
   id            String           @id
   cajaId        String
+  sucursalId    String // CLAUDE.md §4.3: toda entidad con caja lleva sucursalId
   turnoId       String
   usuarioId     String
   fondoInicial  BigInt // Money
@@ -303,6 +304,11 @@ model SesionCaja {
   fechaCierre   DateTime?
   estado        String // ABIERTA | CERRADA
   movimientos   MovimientoCaja[]
+  arqueo        Arqueo?
+
+  /// Una caja no puede tener dos sesiones abiertas a la vez. El índice parcial
+  /// que lo garantizaría no lo expresa Prisma; se valida en el módulo.
+  @@index([cajaId, estado])
 }
 
 model MovimientoCaja {
@@ -318,12 +324,22 @@ model MovimientoCaja {
 }
 
 model Arqueo {
-  id            String  @id
-  sesionCajaId  String
-  totalContado  BigInt // Money
-  diferencia    BigInt // Money
-  observaciones String?
-  // totalesEsperadosPorMedio -> Json
+  id           String @id
+  sesionCajaId String @unique
+  /// Money — efectivo que el cajero contó físicamente.
+  totalContado BigInt
+  /// Money — efectivo que el sistema esperaba (fondo + ventas − retiros/gastos).
+  totalEsperado BigInt
+  /// Money con signo: contado − esperado. Negativo = falta plata.
+  diferencia    BigInt
+  /// Totales esperados por medio de pago, para conciliar lo electrónico.
+  /// Se guarda como snapshot: el arqueo tiene que ser reproducible.
+  totalesPorMedio Json
+  observaciones   String?
+  usuarioId       String
+  fecha           DateTime @default(now())
+
+  sesion SesionCaja @relation(fields: [sesionCajaId], references: [id])
 }
 
 model ConciliacionElectronica {

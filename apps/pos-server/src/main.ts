@@ -12,6 +12,7 @@ import { ErrorDescuento, ErrorDevolucion, ventas, type ConfirmarVentaInput, type
 import { kpis } from './services/dashboard.js';
 import { clientes } from './modules/clientes/index.js';
 import { stock } from './modules/stock/index.js';
+import { ErrorCaja, caja } from './modules/caja/index.js';
 import { login, logout, COOKIE_SESION, ErrorAuth } from './auth/auth.js';
 import { requiereAuth, requierePermiso } from './auth/guards.js';
 import { permisosDe } from './auth/permisos.js';
@@ -123,7 +124,7 @@ app.post('/api/ventas', { preHandler: requierePermiso('ventas.cobrar') }, async 
     return reply.code(201).send(res);
   } catch (e) {
     // Un descuento vencido o sin autorización es error del pedido, no del servidor.
-    if (e instanceof ErrorDescuento) return reply.code(400).send({ error: e.message });
+    if (e instanceof ErrorDescuento || e instanceof ErrorCaja) return reply.code(400).send({ error: e.message });
     throw e;
   }
 });
@@ -171,6 +172,51 @@ app.get('/api/actividad', { preHandler: requiereAuth }, async (req) => {
     ...auditoria.map((a) => ({ tipo: 'auditoria' as const, clave: a.accion, estado: a.usuarioId, ocurridoEn: a.ocurridoEn })),
   ].sort((a, b) => +new Date(b.ocurridoEn) - +new Date(a.ocurridoEn)).slice(0, 16);
   return items;
+});
+
+// --- Control de Caja -------------------------------------------------------
+app.get('/api/caja/:cajaId', { preHandler: requierePermiso('caja.operar') }, async (req) => {
+  const { cajaId } = req.params as { cajaId: string };
+  return (await caja.estado(cajaId)) ?? { sesionCajaId: null };
+});
+
+app.post('/api/caja/abrir', { preHandler: requierePermiso('caja.operar') }, async (req, reply) => {
+  const b = req.body as { cajaId?: string; sucursalId?: string; fondoInicial?: number };
+  if (!b?.cajaId || !b?.sucursalId || b.fondoInicial == null) {
+    return reply.code(400).send({ error: 'Faltan caja, sucursal o fondo inicial.' });
+  }
+  try {
+    return reply.code(201).send(await caja.abrir({ ...b, cajaId: b.cajaId, sucursalId: b.sucursalId, fondoInicial: b.fondoInicial, usuarioId: req.usuario!.id }));
+  } catch (e) {
+    if (e instanceof ErrorCaja) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
+});
+
+app.post('/api/caja/movimiento', { preHandler: requierePermiso('caja.operar') }, async (req, reply) => {
+  const b = req.body as { sesionCajaId?: string; tipo?: 'RETIRO' | 'GASTO' | 'INGRESO_MANUAL'; monto?: number; motivo?: string; sucursalId?: string };
+  if (!b?.sesionCajaId || !b?.tipo || b.monto == null || !b?.sucursalId) {
+    return reply.code(400).send({ error: 'Faltan datos del movimiento.' });
+  }
+  try {
+    return await caja.movimiento({ ...b, sesionCajaId: b.sesionCajaId, tipo: b.tipo, monto: b.monto, motivo: b.motivo ?? '', sucursalId: b.sucursalId, usuarioId: req.usuario!.id });
+  } catch (e) {
+    if (e instanceof ErrorCaja) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
+});
+
+app.post('/api/caja/cerrar', { preHandler: requierePermiso('caja.operar') }, async (req, reply) => {
+  const b = req.body as { sesionCajaId?: string; totalContado?: number; observaciones?: string; sucursalId?: string };
+  if (!b?.sesionCajaId || b.totalContado == null || !b?.sucursalId) {
+    return reply.code(400).send({ error: 'Faltan sesión, total contado o sucursal.' });
+  }
+  try {
+    return await caja.cerrar({ ...b, sesionCajaId: b.sesionCajaId, totalContado: b.totalContado, sucursalId: b.sucursalId, usuarioId: req.usuario!.id });
+  } catch (e) {
+    if (e instanceof ErrorCaja) return reply.code(400).send({ error: e.message });
+    throw e;
+  }
 });
 
 // Dashboard: KPIs (requiere permiso de reportes → Admin / Encargado / Contador).
